@@ -8,7 +8,7 @@ type Body = {
 }
 
 function hashApiKey(secret: string, pepper: string) {
-  return createHash('sha256').update(`${secret}.${pepper}`).digest('hex')
+  return createHash('sha256').update(`${pepper}:${secret}`).digest('hex')
 }
 
 export default defineEventHandler(async (event) => {
@@ -20,11 +20,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 503, statusMessage: 'API key pepper is missing.' })
   }
 
-  const secret = randomBytes(32).toString('base64url')
-  const apiKey = `nexio_${secret}`
-  const prefix = apiKey.slice(0, 12)
+  const prefix = randomBytes(4).toString('hex')
+  const secret = randomBytes(24).toString('hex')
+  const apiKey = `${prefix}.${secret}`
   const result = await useDb().query<{ id: string }>(
-    `
+      `
       insert into api_keys (user_id, key_prefix, key_hash, name, created_at)
       values ($1, $2, $3, $4, now())
       returning id

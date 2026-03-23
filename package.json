@@ -6,7 +6,10 @@
     "apps/web"
   ],
   "scripts": {
+    "dev:api": "cd apps/api && go run ./cmd/api",
+    "dev:worker": "cd apps/api && go run ./cmd/worker",
     "dev:web": "npm --workspace apps/web run dev",
+    "test:api": "cd apps/api && go test ./...",
     "build:web": "npm --workspace apps/web run build",
     "lint:docs": "npx aglio --input docs/api.apib --output /tmp/nexio-imdb-docs.html",
     "build:docs": "mkdir -p docs/public && npx aglio -i docs/api.apib -o docs/public/index.html",

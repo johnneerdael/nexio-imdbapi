@@ -1,4 +1,4 @@
-import { randomBytes, createHash, timingSafeEqual } from 'node:crypto'
+import { randomBytes, randomUUID, createHash, timingSafeEqual } from 'node:crypto'
 import { createError, getCookie, getHeader, setCookie, deleteCookie, type H3Event } from 'h3'
 import { useRuntimeConfig } from '#imports'
 import { useDb } from './db'
@@ -54,7 +54,7 @@ function hashedIp(event: H3Event) {
 export async function createSession(event: H3Event, user: PortalUser) {
   const db = useDb()
   const token = newOpaqueToken(32)
-  const sessionId = crypto.randomUUID()
+  const sessionId = randomUUID()
   const tokenHash = hashOpaqueToken(token)
   const cfg = sessionConfig()
   const expiresAt = new Date(Date.now() + cfg.sessionHours * 60 * 60 * 1000)

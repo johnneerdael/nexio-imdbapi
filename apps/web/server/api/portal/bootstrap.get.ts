@@ -8,7 +8,17 @@ export default defineEventHandler(async (event) => {
   const [snapshot, counts, keys] = await Promise.all([
     db.query(
       `
-        select id, status, source_updated_at, imported_at, dataset_version
+        select
+          id,
+          dataset_name,
+          source_url,
+          notes,
+          imported_at,
+          completed_at,
+          is_active,
+          title_count,
+          name_count,
+          rating_count
         from imdb_snapshots
         order by imported_at desc nulls last
         limit 1
@@ -34,15 +44,35 @@ export default defineEventHandler(async (event) => {
     )
   ])
 
+  const snapshotRow = snapshot.rows[0]
+    ? {
+        ...snapshot.rows[0],
+        is_active: Boolean(snapshot.rows[0].is_active),
+        title_count: Number(snapshot.rows[0].title_count || 0),
+        name_count: Number(snapshot.rows[0].name_count || 0),
+        rating_count: Number(snapshot.rows[0].rating_count || 0),
+        status: snapshot.rows[0].is_active ? 'active' : 'staged'
+      }
+    : null
+
+  const statsRow = counts.rows[0]
+    ? {
+        title_count: Number(counts.rows[0].title_count || 0),
+        rating_count: Number(counts.rows[0].rating_count || 0),
+        episode_count: Number(counts.rows[0].episode_count || 0),
+        name_count: Number(counts.rows[0].name_count || 0)
+      }
+    : {
+        title_count: 0,
+        rating_count: 0,
+        episode_count: 0,
+        name_count: 0
+      }
+
   return {
     user: session.user,
-    snapshot: snapshot.rows[0] || null,
-    stats: counts.rows[0] || {
-      title_count: 0,
-      rating_count: 0,
-      episode_count: 0,
-      name_count: 0
-    },
+    snapshot: snapshotRow,
+    stats: statsRow,
     apiKeys: keys.rows
   }
 })

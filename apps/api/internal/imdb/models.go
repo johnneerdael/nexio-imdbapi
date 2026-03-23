@@ -62,19 +62,26 @@ type Repository interface {
 	GetNameTitles(ctx context.Context, nconst string) ([]NameTitleCredit, error)
 	GetTitleAkas(ctx context.Context, tconst string) ([]AKA, error)
 	SearchAkas(ctx context.Context, params SearchAkasParams) ([]AKA, error)
+	CreateBulkJob(ctx context.Context, params CreateBulkJobParams) (BulkJob, error)
+	GetBulkJob(ctx context.Context, id string) (BulkJob, error)
+	GetBulkJobResult(ctx context.Context, id string) (BulkJobResult, error)
 }
 
 type Snapshot struct {
-	ID          int64      `json:"id"`
-	Dataset     string     `json:"dataset"`
-	ImportedAt  time.Time  `json:"importedAt"`
-	IsActive    bool       `json:"isActive"`
-	TitleCount  int64      `json:"titleCount"`
-	NameCount   int64      `json:"nameCount"`
-	RatingCount int64      `json:"ratingCount"`
-	Notes       string     `json:"notes,omitempty"`
-	SourceURL   string     `json:"sourceUrl,omitempty"`
-	CompletedAt *time.Time `json:"completedAt,omitempty"`
+	ID              int64      `json:"id"`
+	Dataset         string     `json:"dataset"`
+	Status          string     `json:"status"`
+	DatasetVersion  string     `json:"datasetVersion,omitempty"`
+	ImportedAt      time.Time  `json:"importedAt"`
+	SourceUpdatedAt *time.Time `json:"sourceUpdatedAt,omitempty"`
+	SourceETag      string     `json:"sourceETag,omitempty"`
+	IsActive        bool       `json:"isActive"`
+	TitleCount      int64      `json:"titleCount"`
+	NameCount       int64      `json:"nameCount"`
+	RatingCount     int64      `json:"ratingCount"`
+	Notes           string     `json:"notes,omitempty"`
+	SourceURL       string     `json:"sourceUrl,omitempty"`
+	CompletedAt     *time.Time `json:"completedAt,omitempty"`
 }
 
 type Stats struct {
@@ -249,13 +256,14 @@ type ResolveCandidate struct {
 }
 
 type BulkJob struct {
-	ID        string    `json:"id"`
-	Operation string    `json:"operation"`
-	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	ExpiresAt time.Time `json:"expiresAt"`
-	ResultURL string    `json:"resultUrl,omitempty"`
+	ID           string    `json:"id"`
+	Operation    string    `json:"operation"`
+	Status       string    `json:"status"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+	ExpiresAt    time.Time `json:"expiresAt"`
+	ResultURL    string    `json:"resultUrl,omitempty"`
+	ErrorMessage string    `json:"errorMessage,omitempty"`
 }
 
 type BulkJobResult struct {
@@ -264,10 +272,13 @@ type BulkJobResult struct {
 }
 
 type CreateBulkJobParams struct {
-	ID        string
-	Operation string
-	Status    string
-	Payload   []byte
-	Result    []byte
-	ExpiresAt time.Time
+	ID                string
+	Operation         string
+	Status            string
+	RequestedByUserID *int64
+	Payload           []byte
+	Result            []byte
+	ErrorMessage      string
+	ExpiresAt         time.Time
+	CompletedAt       *time.Time
 }

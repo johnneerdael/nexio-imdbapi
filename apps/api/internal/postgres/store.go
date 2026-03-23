@@ -66,7 +66,21 @@ func (s *Store) TouchAPIKeyLastUsed(ctx context.Context, id int64, lastUsedAt ti
 
 func (s *Store) ListSnapshots(ctx context.Context) ([]imdb.Snapshot, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, dataset_name, imported_at, is_active, title_count, name_count, rating_count, notes, source_url, completed_at
+		SELECT
+			id,
+			dataset_name,
+			status,
+			dataset_version,
+			imported_at,
+			source_updated_at,
+			source_etag,
+			is_active,
+			title_count,
+			name_count,
+			rating_count,
+			notes,
+			source_url,
+			completed_at
 		FROM imdb_snapshots
 		ORDER BY imported_at DESC, id DESC
 	`)
@@ -81,7 +95,11 @@ func (s *Store) ListSnapshots(ctx context.Context) ([]imdb.Snapshot, error) {
 		if err := rows.Scan(
 			&item.ID,
 			&item.Dataset,
+			&item.Status,
+			&item.DatasetVersion,
 			&item.ImportedAt,
+			&item.SourceUpdatedAt,
+			&item.SourceETag,
 			&item.IsActive,
 			&item.TitleCount,
 			&item.NameCount,
@@ -711,21 +729,36 @@ func (s *Store) SearchAkas(ctx context.Context, params imdb.SearchAkasParams) ([
 func (s *Store) CreateBulkJob(ctx context.Context, params imdb.CreateBulkJobParams) (imdb.BulkJob, error) {
 	var job imdb.BulkJob
 	err := s.pool.QueryRow(ctx, `
-		INSERT INTO bulk_jobs (id, job_type, status, payload, result, created_at, updated_at, expires_at, completed_at)
-		VALUES ($1::uuid, $2, $3, $4::jsonb, $5::jsonb, NOW(), NOW(), $6, NOW())
-		RETURNING id::text, job_type, status, created_at, updated_at, expires_at
-	`, params.ID, params.Operation, params.Status, string(params.Payload), string(params.Result), params.ExpiresAt).Scan(
+		INSERT INTO bulk_jobs (
+			id,
+			job_type,
+			status,
+			requested_by_user_id,
+			payload,
+			result,
+			error_message,
+			created_at,
+			updated_at,
+			expires_at,
+			completed_at
+		)
+		VALUES ($1::uuid, $2, $3, $4, $5::jsonb, $6::jsonb, $7, NOW(), NOW(), $8, $9)
+		RETURNING id::text, job_type, status, created_at, updated_at, expires_at, COALESCE(error_message, '')
+	`, params.ID, params.Operation, params.Status, params.RequestedByUserID, string(params.Payload), string(params.Result), params.ErrorMessage, params.ExpiresAt, params.CompletedAt).Scan(
 		&job.ID,
 		&job.Operation,
 		&job.Status,
 		&job.CreatedAt,
 		&job.UpdatedAt,
 		&job.ExpiresAt,
+		&job.ErrorMessage,
 	)
 	if err != nil {
 		return imdb.BulkJob{}, fmt.Errorf("create bulk job: %w", err)
 	}
-	job.ResultURL = fmt.Sprintf("/v1/bulk/jobs/%s/result", job.ID)
+	if job.Status == "succeeded" {
+		job.ResultURL = fmt.Sprintf("/v1/bulk/jobs/%s/result", job.ID)
+	}
 	return job, nil
 }
 
@@ -734,17 +767,19 @@ func (s *Store) GetBulkJob(ctx context.Context, id string) (imdb.BulkJob, error)
 		job imdb.BulkJob
 	)
 	err := s.pool.QueryRow(ctx, `
-		SELECT id::text, job_type, status, created_at, updated_at, COALESCE(expires_at, updated_at)
+		SELECT id::text, job_type, status, created_at, updated_at, COALESCE(expires_at, updated_at), COALESCE(error_message, '')
 		FROM bulk_jobs
 		WHERE id = $1::uuid
-	`, id).Scan(&job.ID, &job.Operation, &job.Status, &job.CreatedAt, &job.UpdatedAt, &job.ExpiresAt)
+	`, id).Scan(&job.ID, &job.Operation, &job.Status, &job.CreatedAt, &job.UpdatedAt, &job.ExpiresAt, &job.ErrorMessage)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return imdb.BulkJob{}, imdb.ErrNotFound
 		}
 		return imdb.BulkJob{}, fmt.Errorf("get bulk job: %w", err)
 	}
-	job.ResultURL = fmt.Sprintf("/v1/bulk/jobs/%s/result", job.ID)
+	if job.Status == "succeeded" {
+		job.ResultURL = fmt.Sprintf("/v1/bulk/jobs/%s/result", job.ID)
+	}
 	return job, nil
 }
 
@@ -754,23 +789,101 @@ func (s *Store) GetBulkJobResult(ctx context.Context, id string) (imdb.BulkJobRe
 		raw    []byte
 	)
 	err := s.pool.QueryRow(ctx, `
-		SELECT id::text, job_type, status, created_at, updated_at, COALESCE(expires_at, updated_at), result
+		SELECT id::text, job_type, status, created_at, updated_at, COALESCE(expires_at, updated_at), COALESCE(error_message, ''), result
 		FROM bulk_jobs
 		WHERE id = $1::uuid
-	`, id).Scan(&result.Job.ID, &result.Job.Operation, &result.Job.Status, &result.Job.CreatedAt, &result.Job.UpdatedAt, &result.Job.ExpiresAt, &raw)
+	`, id).Scan(&result.Job.ID, &result.Job.Operation, &result.Job.Status, &result.Job.CreatedAt, &result.Job.UpdatedAt, &result.Job.ExpiresAt, &result.Job.ErrorMessage, &raw)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return imdb.BulkJobResult{}, imdb.ErrNotFound
 		}
 		return imdb.BulkJobResult{}, fmt.Errorf("get bulk job result: %w", err)
 	}
-	result.Job.ResultURL = fmt.Sprintf("/v1/bulk/jobs/%s/result", result.Job.ID)
+	if result.Job.Status == "succeeded" {
+		result.Job.ResultURL = fmt.Sprintf("/v1/bulk/jobs/%s/result", result.Job.ID)
+	}
 	if len(raw) > 0 {
 		if err := json.Unmarshal(raw, &result.Result); err != nil {
 			return imdb.BulkJobResult{}, fmt.Errorf("decode bulk result: %w", err)
 		}
 	}
 	return result, nil
+}
+
+type BulkJobRecord struct {
+	ID        string
+	Operation string
+	Payload   []byte
+}
+
+func (s *Store) ClaimNextBulkJob(ctx context.Context) (BulkJobRecord, bool, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return BulkJobRecord{}, false, fmt.Errorf("begin claim bulk job tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var record BulkJobRecord
+	err = tx.QueryRow(ctx, `
+		SELECT id::text, job_type, payload::text
+		FROM bulk_jobs
+		WHERE status = 'queued'
+		  AND (expires_at IS NULL OR expires_at > NOW())
+		ORDER BY created_at ASC
+		FOR UPDATE SKIP LOCKED
+		LIMIT 1
+	`).Scan(&record.ID, &record.Operation, &record.Payload)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return BulkJobRecord{}, false, nil
+		}
+		return BulkJobRecord{}, false, fmt.Errorf("select queued bulk job: %w", err)
+	}
+
+	if _, err := tx.Exec(ctx, `
+		UPDATE bulk_jobs
+		SET status = 'running', started_at = NOW(), updated_at = NOW(), error_message = NULL
+		WHERE id = $1::uuid
+	`, record.ID); err != nil {
+		return BulkJobRecord{}, false, fmt.Errorf("mark bulk job running: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return BulkJobRecord{}, false, fmt.Errorf("commit claim bulk job tx: %w", err)
+	}
+
+	return record, true, nil
+}
+
+func (s *Store) CompleteBulkJob(ctx context.Context, id string, result []byte) error {
+	_, err := s.pool.Exec(ctx, `
+		UPDATE bulk_jobs
+		SET status = 'succeeded',
+			result = $2::jsonb,
+			error_message = NULL,
+			updated_at = NOW(),
+			completed_at = NOW()
+		WHERE id = $1::uuid
+	`, id, string(result))
+	if err != nil {
+		return fmt.Errorf("complete bulk job: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) FailBulkJob(ctx context.Context, id string, message string) error {
+	_, err := s.pool.Exec(ctx, `
+		UPDATE bulk_jobs
+		SET status = 'failed',
+			error_message = $2,
+			updated_at = NOW(),
+			completed_at = NOW()
+		WHERE id = $1::uuid
+	`, id, message)
+	if err != nil {
+		return fmt.Errorf("fail bulk job: %w", err)
+	}
+	return nil
 }
 
 func scanResolveCandidate(row interface{ Scan(...any) error }) (imdb.TitleSummary, int, string, error) {

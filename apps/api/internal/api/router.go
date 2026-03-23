@@ -16,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"nexio-imdb/apps/api/internal/auth"
+	"nexio-imdb/apps/api/internal/bulk"
 	"nexio-imdb/apps/api/internal/imdb"
 )
 
@@ -464,19 +465,24 @@ func (h Handler) createBulkJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resultPayload, err := h.executeBulkOperation(r.Context(), body.Operation, body.Payload)
-	if err != nil {
+	if err := bulk.Validate(body.Operation, body.Payload, 10000); err != nil {
 		handleServiceError(w, err)
 		return
 	}
 
+	var requestedByUserID *int64
+	if principal, ok := principalFromContext(r.Context()); ok {
+		requestedByUserID = principal.UserID
+	}
+
 	job, err := h.service.CreateBulkJob(r.Context(), imdb.CreateBulkJobParams{
-		ID:        newUUID(),
-		Operation: body.Operation,
-		Status:    "succeeded",
-		Payload:   body.Payload,
-		Result:    resultPayload,
-		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+		ID:                newUUID(),
+		Operation:         body.Operation,
+		Status:            "queued",
+		RequestedByUserID: requestedByUserID,
+		Payload:           body.Payload,
+		Result:            []byte(`{}`),
+		ExpiresAt:         time.Now().Add(7 * 24 * time.Hour),
 	})
 	if err != nil {
 		handleServiceError(w, err)
@@ -528,6 +534,11 @@ func (h Handler) requireAPIKey(next http.Handler) http.Handler {
 }
 
 type principalContextKey struct{}
+
+func principalFromContext(ctx context.Context) (*auth.Principal, bool) {
+	principal, ok := ctx.Value(principalContextKey{}).(*auth.Principal)
+	return principal, ok
+}
 
 func parseResolveTitleParams(r *http.Request) (imdb.ResolveTitleParams, error) {
 	title := strings.TrimSpace(r.URL.Query().Get("title"))
@@ -607,42 +618,7 @@ func decodeIdentifierBody(r *http.Request) ([]string, error) {
 }
 
 func (h Handler) executeBulkOperation(ctx context.Context, operation string, payload json.RawMessage) ([]byte, error) {
-	switch operation {
-	case "titles.bulk.get":
-		var body struct {
-			Identifiers []string `json:"identifiers"`
-		}
-		if err := json.Unmarshal(payload, &body); err != nil {
-			return nil, imdb.ErrInvalidRequest
-		}
-		results := make([]imdb.TitleDetail, 0, len(body.Identifiers))
-		for _, id := range body.Identifiers {
-			item, err := h.service.GetTitle(ctx, id)
-			if err != nil {
-				return nil, err
-			}
-			results = append(results, item)
-		}
-		return json.Marshal(map[string]any{"results": results})
-	case "ratings.bulk":
-		var body struct {
-			Identifiers []string `json:"identifiers"`
-		}
-		if err := json.Unmarshal(payload, &body); err != nil {
-			return nil, imdb.ErrInvalidRequest
-		}
-		results := make([]imdb.Rating, 0, len(body.Identifiers))
-		for _, id := range body.Identifiers {
-			item, err := h.service.GetRating(ctx, id)
-			if err != nil {
-				return nil, err
-			}
-			results = append(results, item)
-		}
-		return json.Marshal(map[string]any{"results": results})
-	default:
-		return nil, imdb.ErrInvalidRequest
-	}
+	return bulk.Execute(ctx, h.service, operation, payload)
 }
 
 func newUUID() string {

@@ -1,8 +1,8 @@
 <template>
   <section class="surface rounded-[32px] p-8 md:p-10 max-w-3xl mx-auto">
     <span class="badge">Google Auth</span>
-    <h1 class="section-title text-4xl md:text-5xl font-black leading-[1.02] mt-5">
-      Internal IMDb infrastructure, without external auth glue.
+    <h1 class="section-title text-4xl md:text-5xl font-black leading-[1.02] mt-5 max-w-2xl">
+      Internal IMDb infrastructure, without auth middleware sprawl.
     </h1>
     <p class="text-soft text-lg leading-relaxed mt-5 max-w-2xl">
       Sign in with an approved Google account to view dataset status, read API documentation, and mint scoped API keys for internal clients.
@@ -30,4 +30,3 @@
     </div>
   </section>
 </template>
-

@@ -4,7 +4,11 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE IF NOT EXISTS imdb_snapshots (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     dataset_name TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    dataset_version TEXT,
     source_url TEXT,
+    source_updated_at TIMESTAMPTZ,
+    source_etag TEXT,
     notes TEXT NOT NULL DEFAULT '',
     imported_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     completed_at TIMESTAMPTZ,
@@ -13,6 +17,16 @@ CREATE TABLE IF NOT EXISTS imdb_snapshots (
     name_count BIGINT NOT NULL DEFAULT 0,
     rating_count BIGINT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS dataset_sync_state (
+    dataset_name TEXT PRIMARY KEY,
+    source_url TEXT NOT NULL,
+    etag TEXT,
+    last_modified TEXT,
+    checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    imported_at TIMESTAMPTZ,
+    snapshot_id BIGINT REFERENCES imdb_snapshots(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS titles (
@@ -172,3 +186,30 @@ CREATE INDEX IF NOT EXISTS idx_web_sessions_expires_at ON web_sessions(expires_a
 
 CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
 CREATE INDEX IF NOT EXISTS idx_bulk_jobs_status ON bulk_jobs(status, created_at DESC);
+
+CREATE OR REPLACE VIEW title_search AS
+SELECT
+    t.tconst,
+    t.title_type,
+    t.primary_title,
+    t.original_title,
+    t.start_year,
+    t.end_year,
+    t.is_adult,
+    COALESCE(r.num_votes, 0) AS num_votes,
+    r.average_rating
+FROM titles t
+LEFT JOIN title_ratings r ON r.tconst = t.tconst;
+
+CREATE OR REPLACE VIEW series_episode_ratings AS
+SELECT
+    e.parent_tconst,
+    e.tconst,
+    t.primary_title,
+    e.season_number,
+    e.episode_number,
+    r.average_rating,
+    r.num_votes
+FROM title_episodes e
+JOIN titles t ON t.tconst = e.tconst
+LEFT JOIN title_ratings r ON r.tconst = e.tconst;

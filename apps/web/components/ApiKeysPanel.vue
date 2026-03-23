@@ -19,9 +19,13 @@ const emit = defineEmits<{
 
 const modalOpen = ref(false)
 const label = ref('Android TV client')
+const isCreating = ref(false)
 
 function submit() {
+  isCreating.value = true
   emit('create', label.value)
+  isCreating.value = false
+  modalOpen.value = false
 }
 </script>
 
@@ -32,7 +36,7 @@ function submit() {
         <span class="badge">API Keys</span>
         <h2 class="section-title text-3xl font-extrabold mt-4">Mint access tokens</h2>
         <p class="text-soft mt-3 max-w-2xl">
-          Keys are hashed at rest and shown only once at creation time.
+          Keys are hashed at rest, linked to the signed-in user, and shown only once at creation time.
         </p>
       </div>
       <button class="primary-btn" @click="modalOpen = true">Generate key</button>
@@ -45,7 +49,7 @@ function submit() {
         class="glass rounded-[24px] p-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
       >
         <div>
-          <div class="text-sm uppercase tracking-[0.12em] text-soft">{{ item.key_prefix }}</div>
+          <div class="text-sm uppercase tracking-[0.12em] text-soft">Key prefix {{ item.key_prefix }}</div>
           <div class="font-semibold mt-2">{{ item.label }}</div>
           <div class="text-sm text-soft mt-2">
             Created {{ item.created_at }}<span v-if="item.last_used_at"> • Last used {{ item.last_used_at }}</span>
@@ -75,10 +79,11 @@ function submit() {
 
         <div class="mt-6 flex justify-end gap-3">
           <button class="ghost-btn" @click="modalOpen = false">Cancel</button>
-          <button class="primary-btn" @click="submit">Create</button>
+          <button class="primary-btn" :disabled="isCreating" @click="submit">
+            {{ isCreating ? 'Creating...' : 'Create' }}
+          </button>
         </div>
       </div>
     </div>
   </section>
 </template>
-

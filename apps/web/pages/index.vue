@@ -6,7 +6,19 @@ type BootstrapPayload = {
     displayName: string | null
     avatarUrl: string | null
   }
-  snapshot: Record<string, unknown> | null
+  snapshot: {
+    id: string
+    dataset_name: string
+    source_url: string | null
+    notes: string
+    imported_at: string
+    completed_at: string | null
+    is_active: boolean
+    title_count: number
+    name_count: number
+    rating_count: number
+    status: 'active' | 'staged'
+  } | null
   stats: {
     title_count: number
     rating_count: number
@@ -101,10 +113,10 @@ if (session.value) {
       <div class="grid gap-6">
         <StatsOverview :snapshot="bootstrap.snapshot" :stats="bootstrap.stats" />
 
-        <section v-if="createdKey" class="glass rounded-[28px] p-6">
+        <section v-if="createdKey" class="glass rounded-[28px] p-6 border border-[#86f7c9]/20">
           <span class="badge">Copy now</span>
           <h2 class="section-title text-2xl font-extrabold mt-4">New API key</h2>
-          <p class="text-soft mt-3">This value is only shown once.</p>
+          <p class="text-soft mt-3">This value is only shown once. The backend stores only its hash.</p>
           <pre class="mt-5 rounded-[22px] bg-black/40 p-4 overflow-x-auto text-sm">{{ createdKey }}</pre>
         </section>
 

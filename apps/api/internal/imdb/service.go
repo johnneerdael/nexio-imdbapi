@@ -117,3 +117,15 @@ func (s *Service) GetTitleAkas(ctx context.Context, tconst string) ([]AKA, error
 func (s *Service) SearchAkas(ctx context.Context, params SearchAkasParams) ([]AKA, error) {
 	return s.repo.SearchAkas(ctx, params)
 }
+
+func (s *Service) CreateBulkJob(ctx context.Context, params CreateBulkJobParams) (BulkJob, error) {
+	return s.repo.CreateBulkJob(ctx, params)
+}
+
+func (s *Service) GetBulkJob(ctx context.Context, id string) (BulkJob, error) {
+	return s.repo.GetBulkJob(ctx, id)
+}
+
+func (s *Service) GetBulkJobResult(ctx context.Context, id string) (BulkJobResult, error) {
+	return s.repo.GetBulkJobResult(ctx, id)
+}

@@ -2,19 +2,28 @@
 
 Internal IMDb dataset ingestion and query platform for `api.nexioapp.org`.
 
+The platform is intended for internal, non-commercial use against the public IMDb dataset snapshots.
+
 ## Monorepo Layout
 
-- `apps/api`: Go API, ingestion pipeline, worker, and database migrations
+- `apps/api`: Go API, queued bulk-job worker, dataset ingestion pipeline, and migrations
 - `apps/web`: Nuxt 4 portal with Google OIDC auth and internal docs
 - `docs`: API Blueprint contract and generated documentation
 - `infra/postgres`: local Postgres bootstrap assets
-- `scripts`: helper scripts for local development and dataset operations
 
 ## Local Development
 
-1. Copy the relevant env examples.
-2. Start Postgres with Docker Compose.
-3. Run the Go API and Nuxt web app.
-4. Generate docs from `docs/api.apib`.
+1. Copy `.env.example` to your local environment file and fill in Google OAuth and secret values.
+2. Start Postgres with `docker compose up -d postgres`.
+3. Apply [`infra/postgres/migrations/0001_init.sql`](/Users/jneerdael/Scripts/imdb-scrape/infra/postgres/migrations/0001_init.sql) to the database.
+4. Run `npm run dev:api` for the Go query API.
+5. Run `npm run dev:worker` for scheduled IMDb imports and queued bulk-job processing.
+6. Run `npm run dev:web` for the Nuxt portal.
+7. Run `npm run build:docs` to render the API Blueprint HTML docs consumed by the portal.
 
-The implementation is intended for internal, non-commercial use only.
+## Runtime Notes
+
+- The worker checks IMDb dataset metadata and imports only when upstream `ETag` or `Last-Modified` values change.
+- Imports stream gzip TSV snapshots directly into temporary Postgres staging tables, then normalize inside a transaction before promoting the snapshot.
+- Bulk endpoints under `/v1/*/bulk` are synchronous up to 250 identifiers. `/v1/bulk/jobs` queues async bulk work up to 10,000 identifiers for the worker.
+- The portal uses direct Google OIDC in Nuxt and stores users, sessions, and API keys in Postgres.

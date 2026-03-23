@@ -7,9 +7,8 @@
         Generated HTML is served when available; otherwise the raw blueprint contract is returned.
       </p>
     </div>
-    <div class="overflow-hidden rounded-[28px] border border-white/10 mt-4">
-      <iframe src="/api/docs" class="w-full min-h-[900px] bg-white" title="API documentation"></iframe>
+    <div class="overflow-hidden rounded-[28px] border border-white/10 mt-4 bg-black/30">
+      <iframe src="/api/docs" class="w-full min-h-[900px] bg-[#0b0b0b]" title="API documentation"></iframe>
     </div>
   </section>
 </template>
-

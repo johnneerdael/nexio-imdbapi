@@ -2,6 +2,7 @@ import { OAuth2Client } from 'google-auth-library'
 import { createHash, randomBytes } from 'node:crypto'
 import { createError, getCookie, setCookie, type H3Event } from 'h3'
 import { useRuntimeConfig } from '#imports'
+import { openCookieValue, sealCookieValue } from './secureCookie'
 
 const OAUTH_COOKIE_TTL_SECONDS = 600
 
@@ -52,10 +53,10 @@ export function beginGoogleFlow(event: H3Event, nextPath = '/') {
   const nonce = base64Url(24)
   const verifier = base64Url(48)
 
-  setCookie(event, 'oauth_state', state, cookieOptions())
-  setCookie(event, 'oauth_nonce', nonce, cookieOptions())
-  setCookie(event, 'oauth_code_verifier', verifier, cookieOptions())
-  setCookie(event, 'oauth_next', nextPath, {
+  setCookie(event, 'oauth_state', sealCookieValue(state), cookieOptions())
+  setCookie(event, 'oauth_nonce', sealCookieValue(nonce), cookieOptions())
+  setCookie(event, 'oauth_code_verifier', sealCookieValue(verifier), cookieOptions())
+  setCookie(event, 'oauth_next', sealCookieValue(nextPath), {
     ...cookieOptions(),
     httpOnly: true
   })
@@ -73,10 +74,10 @@ export function beginGoogleFlow(event: H3Event, nextPath = '/') {
 }
 
 export async function finishGoogleFlow(event: H3Event, code: string, state: string) {
-  const storedState = getCookie(event, 'oauth_state') || ''
-  const storedNonce = getCookie(event, 'oauth_nonce') || ''
-  const storedVerifier = getCookie(event, 'oauth_code_verifier') || ''
-  const nextPath = getCookie(event, 'oauth_next') || '/'
+  const storedState = openCookieValue(getCookie(event, 'oauth_state') || '')
+  const storedNonce = openCookieValue(getCookie(event, 'oauth_nonce') || '')
+  const storedVerifier = openCookieValue(getCookie(event, 'oauth_code_verifier') || '')
+  const nextPath = openCookieValue(getCookie(event, 'oauth_next') || '') || '/'
   if (!code || !state || state !== storedState || !storedVerifier || !storedNonce) {
     throw createError({ statusCode: 401, statusMessage: 'Invalid OAuth state.' })
   }

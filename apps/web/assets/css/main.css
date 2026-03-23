@@ -2,21 +2,21 @@
 
 :root {
   color-scheme: dark;
-  --surface: #0e0e0e;
-  --surface-container-lowest: #000000;
-  --surface-container-low: #131313;
-  --surface-container: #1a1a1a;
-  --surface-variant: rgba(38, 38, 38, 0.6);
-  --surface-bright: #333333;
-  --primary: #ba9eff;
-  --primary-dim: #8455ef;
-  --secondary: #53ddfc;
-  --tertiary: #ff97b5;
+  --surface: #0b0b0c;
+  --surface-container-lowest: #050506;
+  --surface-container-low: #101013;
+  --surface-container: #17171d;
+  --surface-variant: rgba(24, 24, 31, 0.72);
+  --surface-bright: #262633;
+  --primary: #bfa6ff;
+  --primary-dim: #8f68ff;
+  --secondary: #5adcf4;
+  --tertiary: #ffa0ba;
   --on-surface: #ffffff;
   --on-surface-variant: #adaaaa;
-  --outline-variant: #494847;
-  --stroke: rgba(73, 72, 71, 0.15);
-  --shadow: 0 0 40px rgba(186, 158, 255, 0.06);
+  --outline-variant: #45445a;
+  --stroke: rgba(255, 255, 255, 0.08);
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
   --font-display: 'Manrope', 'Segoe UI', sans-serif;
   --font-body: 'Inter', 'Segoe UI', sans-serif;
 }
@@ -30,9 +30,10 @@ body,
 body {
   margin: 0;
   background:
-    radial-gradient(circle at 12% 18%, rgba(83, 221, 252, 0.09), transparent 28%),
-    radial-gradient(circle at 90% 20%, rgba(186, 158, 255, 0.12), transparent 24%),
-    linear-gradient(180deg, #040404 0%, #0e0e0e 45%, #090909 100%);
+    radial-gradient(circle at 12% 18%, rgba(90, 220, 244, 0.14), transparent 24%),
+    radial-gradient(circle at 90% 20%, rgba(191, 166, 255, 0.16), transparent 24%),
+    radial-gradient(circle at 50% 110%, rgba(255, 160, 186, 0.06), transparent 20%),
+    linear-gradient(180deg, #040405 0%, #0a0a0d 46%, #07070a 100%);
   color: var(--on-surface);
   font-family: var(--font-body);
 }
@@ -63,6 +64,45 @@ button {
   overflow: hidden;
 }
 
+.portal-page::before,
+.portal-page::after,
+.portal-aurora {
+  content: '';
+  position: absolute;
+  inset: auto;
+  pointer-events: none;
+}
+
+.portal-page::before {
+  top: -12rem;
+  right: -10rem;
+  width: 34rem;
+  height: 34rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(191, 166, 255, 0.16), transparent 68%);
+  filter: blur(18px);
+}
+
+.portal-page::after {
+  left: -14rem;
+  bottom: -12rem;
+  width: 36rem;
+  height: 36rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(90, 220, 244, 0.1), transparent 64%);
+  filter: blur(18px);
+}
+
+.portal-aurora {
+  inset: 0;
+  background:
+    linear-gradient(transparent 95%, rgba(255, 255, 255, 0.025) 100%),
+    linear-gradient(90deg, transparent 95%, rgba(255, 255, 255, 0.025) 100%);
+  background-size: 100% 32px, 32px 100%;
+  opacity: 0.35;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), transparent 92%);
+}
+
 .portal-shell {
   position: relative;
   z-index: 1;
@@ -71,15 +111,15 @@ button {
 }
 
 .glass {
-  background: var(--surface-variant);
+  background: linear-gradient(180deg, rgba(32, 32, 40, 0.82), rgba(18, 18, 24, 0.72));
   border: 1px solid var(--stroke);
   backdrop-filter: blur(20px);
   box-shadow: var(--shadow);
 }
 
 .surface {
-  background: rgba(26, 26, 26, 0.88);
-  border: 1px solid var(--stroke);
+  background: linear-gradient(180deg, rgba(24, 24, 31, 0.95), rgba(15, 15, 19, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: var(--shadow);
 }
 
@@ -94,8 +134,8 @@ button {
   gap: 0.5rem;
   padding: 0.55rem 0.8rem;
   border-radius: 999px;
-  background: rgba(19, 19, 19, 0.85);
-  border: 1px solid rgba(73, 72, 71, 0.2);
+  background: rgba(10, 10, 14, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   color: var(--on-surface-variant);
   font-size: 0.82rem;
   letter-spacing: 0.12em;
@@ -115,6 +155,7 @@ button {
   background: linear-gradient(135deg, var(--primary), var(--primary-dim));
   color: #fff;
   font-weight: 700;
+  box-shadow: 0 16px 28px rgba(143, 104, 255, 0.18);
 }
 
 .primary-btn:hover,
@@ -142,8 +183,20 @@ button {
 .field-shell input {
   width: 100%;
   border-radius: 14px;
-  border: 1px solid rgba(73, 72, 71, 0.25);
-  background: rgba(6, 15, 26, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 10, 16, 0.8);
   color: var(--on-surface);
   padding: 0.9rem 1rem;
+}
+
+.field-shell input:focus,
+.field-shell input:focus-visible {
+  outline: none;
+  border-color: rgba(191, 166, 255, 0.55);
+  box-shadow: 0 0 0 3px rgba(191, 166, 255, 0.12);
+}
+
+pre {
+  margin: 0;
+  white-space: pre-wrap;
 }

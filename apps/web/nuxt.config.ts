@@ -1,3 +1,5 @@
+const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8080'
+
 export default defineNuxtConfig({
   modules: ['@nuxtjs/tailwindcss'],
   css: ['~/assets/css/main.css'],
@@ -27,6 +29,13 @@ export default defineNuxtConfig({
     apiKeyPepper: '',
     public: {
       apiBaseUrl: 'http://localhost:8080'
+    }
+  },
+  nitro: {
+    routeRules: {
+      '/healthz': { proxy: `${apiBaseUrl}/healthz` },
+      '/readyz': { proxy: `${apiBaseUrl}/readyz` },
+      '/v1/**': { proxy: `${apiBaseUrl}/v1/**` }
     }
   },
   future: {

@@ -159,6 +159,9 @@ type stubService struct {
 	getNameTitles       func(context.Context, string) ([]imdb.NameTitleCredit, error)
 	getTitleAkas        func(context.Context, string) ([]imdb.AKA, error)
 	searchAkas          func(context.Context, imdb.SearchAkasParams) ([]imdb.AKA, error)
+	createBulkJob       func(context.Context, imdb.CreateBulkJobParams) (imdb.BulkJob, error)
+	getBulkJob          func(context.Context, string) (imdb.BulkJob, error)
+	getBulkJobResult    func(context.Context, string) (imdb.BulkJobResult, error)
 }
 
 func (s stubService) Ready(ctx context.Context) error {
@@ -292,6 +295,27 @@ func (s stubService) SearchAkas(ctx context.Context, params imdb.SearchAkasParam
 		return s.searchAkas(ctx, params)
 	}
 	return nil, nil
+}
+
+func (s stubService) CreateBulkJob(ctx context.Context, params imdb.CreateBulkJobParams) (imdb.BulkJob, error) {
+	if s.createBulkJob != nil {
+		return s.createBulkJob(ctx, params)
+	}
+	return imdb.BulkJob{}, nil
+}
+
+func (s stubService) GetBulkJob(ctx context.Context, id string) (imdb.BulkJob, error) {
+	if s.getBulkJob != nil {
+		return s.getBulkJob(ctx, id)
+	}
+	return imdb.BulkJob{}, nil
+}
+
+func (s stubService) GetBulkJobResult(ctx context.Context, id string) (imdb.BulkJobResult, error) {
+	if s.getBulkJobResult != nil {
+		return s.getBulkJobResult(ctx, id)
+	}
+	return imdb.BulkJobResult{}, nil
 }
 
 type stubAuthenticator struct {
