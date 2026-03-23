@@ -34,6 +34,7 @@ Proxy configs:
 Optional host-managed proxy override:
 
 - [`docker-compose.host-proxy.override.yml.example`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.host-proxy.override.yml.example)
+- [`docker-compose.host-ports.override.yml.example`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.host-ports.override.yml.example)
 
 ## How The Stack Is Split
 
@@ -89,6 +90,9 @@ HTTP_TIMEOUT_MINUTES=30
 
 Important:
 
+- `APP_DOMAIN` must be the bare host name only, for example `api.nexioapp.org`.
+- Do not include `http://` or `https://` in `APP_DOMAIN`.
+- Compose uses `APP_DOMAIN` to derive `APP_BASE_URL=https://${APP_DOMAIN}` and `GOOGLE_REDIRECT_URL=https://${APP_DOMAIN}/auth/callback`, and the bundled Caddy config also expects a host name instead of a full URL.
 - `SESSION_COOKIE_SECRET` must stay stable between deployments.
 - `API_KEY_PEPPER` must stay stable between deployments.
 - if `API_KEY_PEPPER` changes, all existing API keys become invalid.
@@ -221,18 +225,161 @@ Those values are baked into the proxy configs and service wiring:
 - [`infra/nginx/default.conf`](/Users/jneerdael/Scripts/imdb-scrape/infra/nginx/default.conf)
 - [`docker-compose.traefik.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.traefik.yml)
 
-If you change the API port:
+### Option 1: Change Only The Host-Published Ports
 
-- update `API_ADDRESS` in the `api` service
-- update `API_BASE_URL` in the `web` build arg and env
-- update every proxy target that points to `api:8080`
+This is the common case.
 
-If you change the web port:
+Use it when:
 
-- update the container's listening port in the web image/runtime
-- update every proxy target that points to `web:3000`
+- you want direct browser or curl access to the API and web services
+- you use a host-level Caddy or Nginx install
+- you do not want to touch the internal service wiring
 
-If you only need different host-exposed ports for a host-level proxy, change the `ports` section in your override file instead of changing the internal service ports.
+Example override:
+
+- [`docker-compose.host-ports.override.yml.example`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.host-ports.override.yml.example)
+
+```yaml
+services:
+  api:
+    ports:
+      - "18080:8080"
+
+  web:
+    ports:
+      - "13000:3000"
+```
+
+Start with it:
+
+```bash
+cp docker-compose.host-ports.override.yml.example docker-compose.host-ports.override.yml
+docker compose \
+  --env-file .env.compose \
+  -f docker-compose.deploy.yml \
+  -f docker-compose.host-ports.override.yml \
+  up -d --build
+```
+
+Result:
+
+- the API is available on host port `18080`
+- the web app is available on host port `13000`
+- inside Docker, the API still listens on `api:8080`
+- inside Docker, the web app still listens on `web:3000`
+
+No proxy config changes are required for this option.
+
+### Option 2: Change The Internal API Port
+
+Use this only if you really want the API container itself to listen on a different port.
+
+Example: move the API from `8080` to `18080`.
+
+Update [`docker-compose.deploy.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.deploy.yml):
+
+```yaml
+api:
+  environment:
+    API_ADDRESS: :18080
+
+web:
+  build:
+    args:
+      API_BASE_URL: http://api:18080
+  environment:
+    API_BASE_URL: http://api:18080
+```
+
+Then update every proxy target:
+
+- [`infra/caddy/Caddyfile`](/Users/jneerdael/Scripts/imdb-scrape/infra/caddy/Caddyfile): change `api:8080` to `api:18080`
+- [`infra/nginx/default.conf`](/Users/jneerdael/Scripts/imdb-scrape/infra/nginx/default.conf): change `http://api:8080` to `http://api:18080`
+- [`docker-compose.traefik.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.traefik.yml): change `traefik.http.services.nexio-api.loadbalancer.server.port` from `8080` to `18080`
+
+If you also expose the API directly on the host, update the host mapping too:
+
+```yaml
+services:
+  api:
+    ports:
+      - "18080:18080"
+```
+
+### Option 3: Change The Internal Web Port
+
+Use this only if you really want the Nuxt container itself to listen on a different port.
+
+Example: move the web app from `3000` to `3100`.
+
+Update [`docker-compose.deploy.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.deploy.yml):
+
+```yaml
+web:
+  environment:
+    NODE_ENV: production
+    PORT: 3100
+```
+
+Then update every proxy target:
+
+- [`infra/caddy/Caddyfile`](/Users/jneerdael/Scripts/imdb-scrape/infra/caddy/Caddyfile): change `web:3000` to `web:3100`
+- [`infra/nginx/default.conf`](/Users/jneerdael/Scripts/imdb-scrape/infra/nginx/default.conf): change `http://web:3000` to `http://web:3100`
+- [`docker-compose.traefik.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.traefik.yml): change `traefik.http.services.nexio-web.loadbalancer.server.port` from `3000` to `3100`
+
+If you also expose the web app directly on the host, update the host mapping too:
+
+```yaml
+services:
+  web:
+    ports:
+      - "13000:3100"
+```
+
+### Option 4: Host-Level Proxy On Custom Ports
+
+If you use your own host-level Caddy or Nginx and want the containers exposed on different loopback ports, change the override file only.
+
+Example:
+
+```yaml
+services:
+  api:
+    ports:
+      - "127.0.0.1:18080:8080"
+
+  web:
+    ports:
+      - "127.0.0.1:13000:3000"
+```
+
+Then point your host proxy to those ports:
+
+```caddy
+api.nexioapp.org {
+    handle /v1/* {
+        reverse_proxy 127.0.0.1:18080
+    }
+
+    handle /healthz {
+        reverse_proxy 127.0.0.1:18080
+    }
+
+    handle /readyz {
+        reverse_proxy 127.0.0.1:18080
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:13000
+    }
+}
+```
+
+Summary:
+
+- change only host-published ports when possible
+- change internal ports only if you also update `API_BASE_URL` and every proxy target
+- the proxy overlays assume `api:8080` and `web:3000` until you edit them
 
 ## Health Verification
 

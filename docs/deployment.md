@@ -36,16 +36,16 @@ Production layout:
     - async bulk job execution
 - `apps/web`
   - Nuxt Nitro server on `127.0.0.1:3000`
-  - proxies `/v1`, `/healthz`, and `/readyz` to the Go API through `API_BASE_URL`
+  - uses `API_BASE_URL` for server-side portal calls into the Go API
 - PostgreSQL
   - canonical application database
 
 Request flow:
 
 1. Client connects to `api.nexioapp.org`.
-2. Caddy terminates TLS and forwards all traffic to Nuxt.
-3. Nuxt serves the portal and docs directly.
-4. Nuxt proxies API and health routes to the Go API on localhost.
+2. Caddy terminates TLS and routes `/v1/*`, `/healthz`, and `/readyz` directly to the Go API.
+3. Caddy routes everything else to Nuxt.
+4. Nuxt serves the portal and docs directly and uses `API_BASE_URL` for its own server-side API calls.
 5. The worker imports IMDb snapshots and processes queued bulk jobs independently.
 
 Proxy routing rule:
@@ -183,6 +183,7 @@ HTTP_TIMEOUT_MINUTES=30
 Important notes:
 
 - `API_BASE_URL` is required by the Nuxt build and Nitro route proxy.
+- `APP_BASE_URL` must be a full URL including scheme, for example `https://api.nexioapp.org`.
 - `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD` are useful if you also bootstrap Postgres or reuse the same values in Docker Compose.
 - `DATABASE_URL` is required by:
   - Go API
@@ -191,6 +192,12 @@ Important notes:
 - `SESSION_COOKIE_SECRET` protects encrypted OAuth verifier cookies.
 - `API_KEY_PEPPER` must remain stable across deployments or existing API keys will stop validating.
 - `ALLOWED_GOOGLE_EMAILS` is a strict allowlist.
+
+For Docker Compose deployments:
+
+- use `APP_DOMAIN` as the bare host name only, for example `api.nexioapp.org`
+- do not include `http://` or `https://` in `APP_DOMAIN`
+- the Compose stack derives `APP_BASE_URL` and `GOOGLE_REDIRECT_URL` from `APP_DOMAIN`
 
 Lock down permissions:
 

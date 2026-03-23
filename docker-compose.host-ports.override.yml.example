@@ -1,0 +1,8 @@
+services:
+  api:
+    ports:
+      - "18080:8080"
+
+  web:
+    ports:
+      - "13000:3000"
