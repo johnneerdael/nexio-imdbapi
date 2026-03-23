@@ -35,6 +35,7 @@ type BootstrapPayload = {
   }>
 }
 
+const requestFetch = useRequestFetch()
 const session = ref<{ authenticated: boolean; user: Record<string, unknown> } | null>(null)
 const bootstrap = ref<BootstrapPayload | null>(null)
 const createdKey = ref<string | null>(null)
@@ -42,7 +43,7 @@ const error = ref<string | null>(null)
 
 async function loadSession() {
   try {
-    session.value = await $fetch('/auth/session')
+    session.value = await requestFetch('/auth/session')
   } catch {
     session.value = null
   }
@@ -54,7 +55,7 @@ async function loadBootstrap() {
     return
   }
 
-  bootstrap.value = await $fetch('/api/portal/bootstrap')
+  bootstrap.value = await requestFetch('/api/portal/bootstrap')
 }
 
 async function createKey(label: string) {

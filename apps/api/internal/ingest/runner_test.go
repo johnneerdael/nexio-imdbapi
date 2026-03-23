@@ -67,3 +67,18 @@ func TestDownloadProgressReaderLogsProgressAndCompletion(t *testing.T) {
 		t.Fatalf("expected completion log, got %q", got)
 	}
 }
+
+func TestLoadNamesStatementSkipsRowsMissingRequiredColumns(t *testing.T) {
+	t.Parallel()
+
+	statement := loadNamesStatement(42)
+	if !strings.Contains(statement, "FROM staging_name_basics_raw") {
+		t.Fatalf("expected names statement to read from staging_name_basics_raw, got %q", statement)
+	}
+	if !strings.Contains(statement, "WHERE nconst IS NOT NULL") {
+		t.Fatalf("expected names statement to guard against null nconst, got %q", statement)
+	}
+	if !strings.Contains(statement, "AND primary_name IS NOT NULL") {
+		t.Fatalf("expected names statement to guard against null primary_name, got %q", statement)
+	}
+}

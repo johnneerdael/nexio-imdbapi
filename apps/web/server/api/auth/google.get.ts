@@ -16,7 +16,7 @@ function safeNextPath(value: unknown) {
 
 export default defineEventHandler((event) => {
   const nextPath = safeNextPath(getQuery(event).next)
+  console.info('[auth] begin google flow', { nextPath })
   const url = beginGoogleFlow(event, nextPath)
   return sendRedirect(event, url, 302)
 })
-

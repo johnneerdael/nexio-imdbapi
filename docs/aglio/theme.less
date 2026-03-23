@@ -1,133 +1,33 @@
-@import (less) "../../node_modules/aglio-theme-olio/styles/variables-slate.less";
-@import (less) "../../node_modules/aglio-theme-olio/styles/layout-default.less";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap');
 
-@background-color: #06070a;
-@text-color: #d7d8de;
-@heading-text-color: #ffffff;
-@link-color: #9ce7ff;
-@nav-width: 300px;
-@right-panel-background-width: 38%;
-@group-title-background-color: rgba(255, 255, 255, 0.08);
-@group-border-color: rgba(255, 255, 255, 0.06);
-@nav-hover-background-color: rgba(255, 255, 255, 0.06);
-@nav-hover-border-color: #bfa6ff;
-@code-block-background-color: #11131a;
-@code-block-border-color: rgba(255, 255, 255, 0.08);
-@inline-code-background-color: rgba(255, 255, 255, 0.06);
-@inline-code-text-color: #f4f5f7;
-@table-row-background-color: rgba(255, 255, 255, 0.03);
-@table-border-color: rgba(255, 255, 255, 0.08);
-@right-panel-background-color: rgba(10, 12, 16, 0.88);
-@right-text-color: #f7f8fc;
-@title-font: 800 36px/1.05 'Manrope', 'Segoe UI', sans-serif;
-@base-font: 16px/1.7 'Inter', 'Segoe UI', sans-serif;
-@code-font: 500 13px/1.6 'SFMono-Regular', 'SF Mono', 'Consolas', monospace;
-
-html,
 body {
-  min-height: 100%;
-}
-
-body.nexio-docs {
   margin: 0;
+  color: #d7d8de;
   background:
     radial-gradient(circle at 12% 18%, rgba(90, 220, 244, 0.14), transparent 24%),
     radial-gradient(circle at 90% 20%, rgba(191, 166, 255, 0.16), transparent 24%),
     radial-gradient(circle at 50% 110%, rgba(255, 160, 186, 0.06), transparent 20%),
     linear-gradient(180deg, #040405 0%, #0a0a0d 46%, #07070a 100%);
+  font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
-.docs-shell {
-  padding: 24px;
+body,
+p,
+li,
+dt,
+dd,
+table,
+th,
+td {
+  color: #d7d8de;
 }
 
-.docs-layout.container-fluid.triple {
-  position: relative;
-  max-width: none;
-  padding: 0;
+a {
+  color: #9ce7ff;
 }
 
-body.nexio-docs .docs-layout > .row {
-  margin: 0;
-}
-
-body.nexio-docs .container-fluid.triple nav {
-  top: 24px;
-  bottom: 24px;
-  left: 24px;
-  width: 280px;
-  max-width: 280px;
-  padding: 14px 0 18px;
-  border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(24, 24, 31, 0.95), rgba(15, 15, 19, 0.92));
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
-}
-
-body.nexio-docs .container-fluid.triple nav .resource-group .heading a,
-body.nexio-docs .container-fluid.triple nav ul a {
-  border-left-width: 3px;
-  padding-left: 18px;
-  padding-right: 18px;
-}
-
-body.nexio-docs .container-fluid.triple .row .content {
-  position: relative;
-  box-sizing: border-box;
-  width: calc(100% - 304px);
-  margin-left: 304px;
-  padding: 0;
-}
-
-body.nexio-docs .container-fluid.triple .middle,
-body.nexio-docs .container-fluid.triple .right {
-  padding-top: 0;
-}
-
-body.nexio-docs .container-fluid.triple .middle {
-  box-sizing: border-box;
-  float: left;
-  width: 62%;
-  padding-left: 28px;
-  padding-right: 28px;
-}
-
-body.nexio-docs .container-fluid.triple .right {
-  box-sizing: border-box;
-  width: 38%;
-  padding-left: 24px;
-  padding-right: 24px;
-  background: linear-gradient(180deg, rgba(17, 19, 25, 0.92), rgba(10, 12, 16, 0.88));
-}
-
-body.nexio-docs #right-panel-background {
-  width: 38%;
-  background: linear-gradient(180deg, rgba(17, 19, 25, 0.92), rgba(10, 12, 16, 0.88));
-}
-
-body.nexio-docs .docs-layout header {
-  margin-top: 0;
-  padding-top: 18px;
-}
-
-body.nexio-docs .docs-layout header h1 {
-  margin: 0 0 16px;
-  font-size: 52px;
-  line-height: 0.96;
-  letter-spacing: -0.05em;
-}
-
-body.nexio-docs .docs-layout header + p,
-body.nexio-docs .docs-layout header + div,
-body.nexio-docs .docs-layout .middle > p:first-of-type {
-  color: #b8bac5;
-  max-width: 48rem;
-}
-
-.resource-group,
-.resource,
-.action {
-  scroll-margin-top: 32px;
+a:hover {
+  color: #c8f4ff;
 }
 
 h1,
@@ -135,37 +35,43 @@ h2,
 h3,
 h4,
 h5 {
-  letter-spacing: -0.02em;
+  color: #ffffff;
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
 }
 
-h2.group-heading {
-  font-size: 28px;
+h1 {
+  font-size: 54px;
+  line-height: 0.96;
+  letter-spacing: -0.05em;
 }
 
-h3.resource-heading {
-  font: 800 18px/1.2 'Manrope', 'Segoe UI', sans-serif;
+h2 {
+  font-size: 32px;
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+
+h3 {
   letter-spacing: 0.08em;
-  color: #a6aab7;
 }
 
-.action-heading .method {
+header {
+  margin-top: 28px;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+code {
+  color: #f4f5f7;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
   border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 700;
+  padding: 2px 8px;
 }
 
-.action-heading code.uri {
-  border-radius: 999px;
-  padding: 4px 10px;
-  margin-left: 10px;
-}
-
-.definition,
 pre,
+.definition,
+.example-names,
 blockquote,
-.note,
-.warning,
 table {
   border-radius: 18px;
 }
@@ -173,80 +79,148 @@ table {
 pre,
 .definition {
   background: rgba(14, 16, 22, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-code {
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-.example-names .tab-button {
+blockquote {
+  border-left-color: rgba(156, 231, 255, 0.45);
+}
+
+table th,
+table td {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+table tr:nth-child(2n) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.back-to-top {
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(20, 22, 30, 0.94);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+#nav-background {
+  background: linear-gradient(180deg, rgba(17, 20, 26, 0.95), rgba(10, 12, 16, 0.94));
+  border-right-color: rgba(255, 255, 255, 0.08);
+}
+
+#right-panel-background {
+  background: linear-gradient(180deg, rgba(17, 20, 26, 0.94), rgba(10, 12, 16, 0.92));
+}
+
+nav {
+  scrollbar-color: rgba(166, 171, 184, 0.35) transparent;
+}
+
+nav .resource-group {
+  overflow: hidden;
+  background: rgba(24, 24, 31, 0.92);
+  border-color: rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+nav .resource-group .heading a {
+  color: #f5f6fb;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+nav .resource-group .heading a:hover,
+nav ul a:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-left-color: #bfa6ff;
+}
+
+nav .resource-group .heading .chevron,
+nav ul a {
+  color: #aeb4c1;
+}
+
+nav ul a {
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.resource-group {
+  background: rgba(20, 22, 28, 0.88);
+  border-color: rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+}
+
+.triple .content .resource-group {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.triple .content .resource-group h2.group-heading,
+.triple .content .resource-group .heading a {
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+}
+
+.action {
+  background: rgba(14, 16, 22, 0.78);
+  border-radius: 24px;
+}
+
+.action h4.action-heading {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.action h4.action-heading .method {
   border-radius: 999px;
+}
+
+.action h4.action-heading code {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.example-names {
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  margin-right: 8px;
 }
 
-.example-names .active {
-  background: linear-gradient(135deg, rgba(191, 166, 255, 0.26), rgba(90, 220, 244, 0.18));
-  border-color: rgba(191, 166, 255, 0.42);
-}
-
-a.back-to-top {
-  right: 24px;
-  bottom: 24px;
+.example-names .tab-button {
+  color: #f4f5f7;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
   border-radius: 999px;
-  padding: 12px 16px;
-  background: rgba(10, 10, 14, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.docs-credit {
-  padding: 24px 0 48px;
+.example-names .tab-button.active {
+  background: rgba(191, 166, 255, 0.16);
 }
 
-@media (max-width: 1400px) {
-  body.nexio-docs .container-fluid.triple .middle {
-    width: 58%;
-  }
-
-  body.nexio-docs .container-fluid.triple .right,
-  body.nexio-docs #right-panel-background {
-    width: 42%;
-  }
+.right,
+.right p,
+.right div,
+.right dt,
+.right dd,
+.right h1,
+.right h2,
+.right h3,
+.right h4,
+.right h5 {
+  color: #f7f8fc;
 }
 
-@media (max-width: 1180px) {
-  body.nexio-docs .container-fluid.triple nav {
-    position: relative;
-    top: 0;
-    left: 0;
-    bottom: auto;
-    width: 100%;
-    max-width: none;
-    margin-bottom: 20px;
-  }
-
-  body.nexio-docs .container-fluid.triple .row .content {
-    width: 100%;
-    margin-left: 0;
-  }
+.right pre,
+.right .definition,
+.right .example-names {
+  background: rgba(17, 20, 26, 0.94);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
-@media (max-width: 900px) {
-  .docs-shell {
-    padding: 16px;
-  }
+.right .example-names .tab-button {
+  color: #f7f8fc;
+}
 
-  body.nexio-docs .container-fluid.triple .middle,
-  body.nexio-docs .container-fluid.triple .right {
-    width: 100%;
-    padding-left: 20px;
-    padding-right: 20px;
-  }
-
-  body.nexio-docs .container-fluid.triple .right,
-  body.nexio-docs #right-panel-background {
-    display: none;
-  }
+.right code {
+  color: #f7f8fc;
 }

@@ -1,8 +1,9 @@
 <script setup lang="ts">
+const requestFetch = useRequestFetch()
 const session = ref<{ authenticated: boolean; user: Record<string, unknown> } | null>(null)
 
 try {
-  session.value = await $fetch('/auth/session')
+  session.value = await requestFetch('/auth/session')
 } catch {
   session.value = null
 }

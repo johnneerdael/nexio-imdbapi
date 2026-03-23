@@ -430,6 +430,31 @@ func (r *downloadProgressReader) logProgress(prefix string) {
 	r.logger.Printf("%s %s: %d bytes duration=%s", prefix, r.datasetName, r.downloaded, duration)
 }
 
+func loadNamesStatement(snapshotID int64) string {
+	return fmt.Sprintf(`
+			INSERT INTO names (nconst, snapshot_id, primary_name, birth_year, death_year, primary_professions, known_for_titles, created_at, updated_at)
+			SELECT
+				nconst,
+				%d,
+				primary_name,
+				NULLIF(birth_year, '')::INTEGER,
+				NULLIF(death_year, '')::INTEGER,
+				CASE
+					WHEN primary_professions IS NULL OR primary_professions = '' THEN ARRAY[]::TEXT[]
+					ELSE string_to_array(primary_professions, ',')
+				END,
+				CASE
+					WHEN known_for_titles IS NULL OR known_for_titles = '' THEN ARRAY[]::TEXT[]
+					ELSE string_to_array(known_for_titles, ',')
+				END,
+				NOW(),
+				NOW()
+			FROM staging_name_basics_raw
+			WHERE nconst IS NOT NULL
+			  AND primary_name IS NOT NULL
+		`, snapshotID)
+}
+
 func (r *Runner) normalizeSnapshot(ctx context.Context, tx pgx.Tx, snapshotID int64, sourceUpdatedAt *time.Time, datasetVersion string, remote []remoteDataset) error {
 	type normalizeStep struct {
 		name      string
@@ -458,26 +483,7 @@ func (r *Runner) normalizeSnapshot(ctx context.Context, tx pgx.Tx, snapshotID in
 				NOW()
 			FROM staging_title_basics_raw
 		`, snapshotID)},
-		{name: "load names", statement: fmt.Sprintf(`
-			INSERT INTO names (nconst, snapshot_id, primary_name, birth_year, death_year, primary_professions, known_for_titles, created_at, updated_at)
-			SELECT
-				nconst,
-				%d,
-				primary_name,
-				NULLIF(birth_year, '')::INTEGER,
-				NULLIF(death_year, '')::INTEGER,
-				CASE
-					WHEN primary_professions IS NULL OR primary_professions = '' THEN ARRAY[]::TEXT[]
-					ELSE string_to_array(primary_professions, ',')
-				END,
-				CASE
-					WHEN known_for_titles IS NULL OR known_for_titles = '' THEN ARRAY[]::TEXT[]
-					ELSE string_to_array(known_for_titles, ',')
-				END,
-				NOW(),
-				NOW()
-			FROM staging_name_basics_raw
-		`, snapshotID)},
+		{name: "load names", statement: loadNamesStatement(snapshotID)},
 		{name: "load ratings", statement: `
 			INSERT INTO title_ratings (tconst, average_rating, num_votes, updated_at)
 			SELECT tconst, average_rating::NUMERIC(3,1), COALESCE(NULLIF(num_votes, ''), '0')::INTEGER, NOW()
