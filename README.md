@@ -27,3 +27,8 @@ The platform is intended for internal, non-commercial use against the public IMD
 - Imports stream gzip TSV snapshots directly into temporary Postgres staging tables, then normalize inside a transaction before promoting the snapshot.
 - Bulk endpoints under `/v1/*/bulk` are synchronous up to 250 identifiers. `/v1/bulk/jobs` queues async bulk work up to 10,000 identifiers for the worker.
 - The portal uses direct Google OIDC in Nuxt and stores users, sessions, and API keys in Postgres.
+
+## Deployment
+
+- Production deployment guide: [`docs/deployment.md`](/Users/jneerdael/Scripts/imdb-scrape/docs/deployment.md)
+- Docker Compose deployment guide: [`docs/docker-compose-deployment.md`](/Users/jneerdael/Scripts/imdb-scrape/docs/docker-compose-deployment.md)

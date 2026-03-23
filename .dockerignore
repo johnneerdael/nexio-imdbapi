@@ -1,0 +1,10 @@
+.git
+.github
+node_modules
+apps/web/node_modules
+apps/web/.nuxt
+apps/web/.output
+docs/public
+npm-debug.log
+*.log
+.DS_Store
