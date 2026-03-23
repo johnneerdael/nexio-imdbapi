@@ -101,6 +101,7 @@ if (session.value) {
           <div class="text-sm text-soft">{{ bootstrap.user.displayName || bootstrap.user.email }}</div>
           <div class="text-xs uppercase tracking-[0.12em] text-soft/70">{{ bootstrap.user.email }}</div>
         </div>
+        <NuxtLink class="ghost-btn" to="/docs">API Documentation</NuxtLink>
         <button class="ghost-btn" @click="signOut">Sign out</button>
       </template>
     </template>

@@ -1,0 +1,322 @@
+@import (less) "../../node_modules/aglio-theme-olio/styles/variables-slate.less";
+@import (less) "../../node_modules/aglio-theme-olio/styles/layout-default.less";
+
+@background-color: #06070a;
+@text-color: #d7d8de;
+@heading-text-color: #ffffff;
+@link-color: #9ce7ff;
+@nav-width: 300px;
+@right-panel-background-width: 38%;
+@group-title-background-color: rgba(255, 255, 255, 0.08);
+@group-border-color: rgba(255, 255, 255, 0.06);
+@nav-hover-background-color: rgba(255, 255, 255, 0.06);
+@nav-hover-border-color: #bfa6ff;
+@code-block-background-color: #11131a;
+@code-block-border-color: rgba(255, 255, 255, 0.08);
+@inline-code-background-color: rgba(255, 255, 255, 0.06);
+@inline-code-text-color: #f4f5f7;
+@table-row-background-color: rgba(255, 255, 255, 0.03);
+@table-border-color: rgba(255, 255, 255, 0.08);
+@right-panel-background-color: rgba(10, 12, 16, 0.88);
+@right-text-color: #f7f8fc;
+@title-font: 800 36px/1.05 'Manrope', 'Segoe UI', sans-serif;
+@base-font: 16px/1.7 'Inter', 'Segoe UI', sans-serif;
+@code-font: 500 13px/1.6 'SFMono-Regular', 'SF Mono', 'Consolas', monospace;
+
+html,
+body {
+  min-height: 100%;
+}
+
+body.nexio-docs {
+  margin: 0;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(90, 220, 244, 0.14), transparent 24%),
+    radial-gradient(circle at 90% 20%, rgba(191, 166, 255, 0.16), transparent 24%),
+    radial-gradient(circle at 50% 110%, rgba(255, 160, 186, 0.06), transparent 20%),
+    linear-gradient(180deg, #040405 0%, #0a0a0d 46%, #07070a 100%);
+}
+
+.docs-shell {
+  padding: 24px;
+}
+
+.docs-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 auto 24px;
+  padding: 24px 28px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(32, 32, 40, 0.82), rgba(18, 18, 24, 0.72));
+  backdrop-filter: blur(20px);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+
+.docs-brand {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  max-width: 840px;
+}
+
+.docs-brand-mark {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #bfa6ff, #8f68ff);
+  color: #050506;
+  font: 900 20px/1 'Manrope', 'Segoe UI', sans-serif;
+}
+
+.docs-kicker {
+  color: #a6aab7;
+  font: 600 11px/1.2 'Inter', 'Segoe UI', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.docs-title {
+  margin: 6px 0 0;
+  font: 800 34px/1.02 'Manrope', 'Segoe UI', sans-serif;
+  letter-spacing: -0.04em;
+}
+
+.docs-subtitle {
+  margin: 12px 0 0;
+  color: #b8bac5;
+  max-width: 72ch;
+}
+
+.docs-subtitle p {
+  margin: 0;
+}
+
+.docs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.docs-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 10, 14, 0.84);
+  color: #d7d8de;
+  font-weight: 600;
+}
+
+.docs-endpoint {
+  color: #9ce7ff;
+}
+
+.docs-layout {
+  position: relative;
+  max-width: none;
+  padding: 0;
+}
+
+.docs-layout > .row {
+  margin: 0;
+}
+
+nav {
+  top: 128px;
+  bottom: 24px;
+  left: 24px;
+  width: 280px;
+  padding: 14px 0 18px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(24, 24, 31, 0.95), rgba(15, 15, 19, 0.92));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+
+nav .resource-group .heading a,
+nav ul a {
+  border-left-width: 3px;
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+.content {
+  position: relative;
+  width: calc(100% - 304px);
+  margin-left: 304px;
+  padding: 0;
+}
+
+.triple .middle,
+.triple .right {
+  padding-top: 0;
+}
+
+.triple .middle {
+  width: 62%;
+  padding-left: 28px;
+  padding-right: 28px;
+}
+
+.triple .right {
+  width: 38%;
+  padding-left: 24px;
+  padding-right: 24px;
+  background: linear-gradient(180deg, rgba(17, 19, 25, 0.92), rgba(10, 12, 16, 0.88));
+}
+
+#right-panel-background {
+  width: 38%;
+  background: linear-gradient(180deg, rgba(17, 19, 25, 0.92), rgba(10, 12, 16, 0.88));
+}
+
+header {
+  margin-top: 0;
+  padding-top: 8px;
+}
+
+.resource-group,
+.resource,
+.action {
+  scroll-margin-top: 140px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  letter-spacing: -0.02em;
+}
+
+h2.group-heading {
+  font-size: 28px;
+}
+
+h3.resource-heading {
+  font: 800 18px/1.2 'Manrope', 'Segoe UI', sans-serif;
+  letter-spacing: 0.08em;
+  color: #a6aab7;
+}
+
+.action-heading .method {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.action-heading code.uri {
+  border-radius: 999px;
+  padding: 4px 10px;
+  margin-left: 10px;
+}
+
+.definition,
+pre,
+blockquote,
+.note,
+.warning,
+table {
+  border-radius: 18px;
+}
+
+pre,
+.definition {
+  background: rgba(14, 16, 22, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+code {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.example-names .tab-button {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-right: 8px;
+}
+
+.example-names .active {
+  background: linear-gradient(135deg, rgba(191, 166, 255, 0.26), rgba(90, 220, 244, 0.18));
+  border-color: rgba(191, 166, 255, 0.42);
+}
+
+a.back-to-top {
+  right: 24px;
+  bottom: 24px;
+  border-radius: 999px;
+  padding: 12px 16px;
+  background: rgba(10, 10, 14, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.docs-credit {
+  padding: 24px 0 48px;
+}
+
+@media (max-width: 1400px) {
+  .triple .middle {
+    width: 58%;
+  }
+
+  .triple .right,
+  #right-panel-background {
+    width: 42%;
+  }
+}
+
+@media (max-width: 1180px) {
+  .docs-topbar {
+    flex-direction: column;
+  }
+
+  nav {
+    position: relative;
+    top: 0;
+    left: 0;
+    bottom: auto;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .content {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .docs-shell {
+    padding: 16px;
+  }
+
+  .docs-topbar {
+    padding: 20px;
+    border-radius: 24px;
+  }
+
+  .triple .middle,
+  .triple .right {
+    width: 100%;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .triple .right,
+  #right-panel-background {
+    display: none;
+  }
+}

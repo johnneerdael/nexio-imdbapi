@@ -13,8 +13,8 @@
     "docs:build": "vitepress build docs-site",
     "test:api": "cd apps/api && go test ./...",
     "build:web": "npm --workspace apps/web run build",
-    "lint:docs": "npx aglio --input docs/api.apib --output /tmp/nexio-imdb-docs.html",
-    "build:docs": "mkdir -p docs/public && npx aglio -i docs/api.apib -o docs/public/index.html",
+    "lint:docs": "npx aglio -i docs/api.apib --theme-template docs/aglio/template.jade --theme-variables slate --theme-style docs/aglio/theme.less --theme-full-width -o /tmp/nexio-imdb-docs.html",
+    "build:docs": "mkdir -p docs/public && npx aglio -i docs/api.apib --theme-template docs/aglio/template.jade --theme-variables slate --theme-style docs/aglio/theme.less --theme-full-width -o docs/public/index.html",
     "test:contract": "dredd"
   },
   "devDependencies": {

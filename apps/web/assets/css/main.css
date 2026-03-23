@@ -110,6 +110,10 @@ button {
   margin: 0 auto;
 }
 
+.portal-shell-wide {
+  width: min(1680px, calc(100vw - 32px));
+}
+
 .glass {
   background: linear-gradient(180deg, rgba(32, 32, 40, 0.82), rgba(18, 18, 24, 0.72));
   border: 1px solid var(--stroke);
