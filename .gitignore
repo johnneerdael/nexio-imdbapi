@@ -16,6 +16,7 @@ apps/api/bin/
 apps/api/coverage.out
 apps/api/tmp/
 docs/public/
+docs-site/.vitepress/dist/
 tmp/
 data/
 artifacts/

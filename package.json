@@ -9,6 +9,8 @@
     "dev:api": "cd apps/api && go run ./cmd/api",
     "dev:worker": "cd apps/api && go run ./cmd/worker",
     "dev:web": "npm --workspace apps/web run dev",
+    "docs:dev": "vitepress dev docs-site",
+    "docs:build": "vitepress build docs-site",
     "test:api": "cd apps/api && go test ./...",
     "build:web": "npm --workspace apps/web run build",
     "lint:docs": "npx aglio --input docs/api.apib --output /tmp/nexio-imdb-docs.html",
@@ -17,6 +19,7 @@
   },
   "devDependencies": {
     "aglio": "^2.3.0",
-    "dredd": "^14.1.0"
+    "dredd": "^14.1.0",
+    "vitepress": "^1.6.4"
   }
 }
