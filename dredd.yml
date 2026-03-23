@@ -1,0 +1,11 @@
+dry-run: null
+hookfiles: []
+language: nodejs
+server: npm run dev:web
+server-wait: 10
+init: false
+custom:
+  apiUrl: http://127.0.0.1:3000
+blueprint: docs/api.apib
+endpoint: http://127.0.0.1:3000
+reporter: markdown

@@ -1,0 +1,149 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Inter:wght@400;500;700&display=swap');
+
+:root {
+  color-scheme: dark;
+  --surface: #0e0e0e;
+  --surface-container-lowest: #000000;
+  --surface-container-low: #131313;
+  --surface-container: #1a1a1a;
+  --surface-variant: rgba(38, 38, 38, 0.6);
+  --surface-bright: #333333;
+  --primary: #ba9eff;
+  --primary-dim: #8455ef;
+  --secondary: #53ddfc;
+  --tertiary: #ff97b5;
+  --on-surface: #ffffff;
+  --on-surface-variant: #adaaaa;
+  --outline-variant: #494847;
+  --stroke: rgba(73, 72, 71, 0.15);
+  --shadow: 0 0 40px rgba(186, 158, 255, 0.06);
+  --font-display: 'Manrope', 'Segoe UI', sans-serif;
+  --font-body: 'Inter', 'Segoe UI', sans-serif;
+}
+
+html,
+body,
+#__nuxt {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(83, 221, 252, 0.09), transparent 28%),
+    radial-gradient(circle at 90% 20%, rgba(186, 158, 255, 0.12), transparent 24%),
+    linear-gradient(180deg, #040404 0%, #0e0e0e 45%, #090909 100%);
+  color: var(--on-surface);
+  font-family: var(--font-body);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.portal-page {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.portal-shell {
+  position: relative;
+  z-index: 1;
+  width: min(1280px, calc(100vw - 32px));
+  margin: 0 auto;
+}
+
+.glass {
+  background: var(--surface-variant);
+  border: 1px solid var(--stroke);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow);
+}
+
+.surface {
+  background: rgba(26, 26, 26, 0.88);
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(19, 19, 19, 0.85);
+  border: 1px solid rgba(73, 72, 71, 0.2);
+  color: var(--on-surface-variant);
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.primary-btn,
+.secondary-btn,
+.ghost-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.9rem 1.3rem;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dim));
+  color: #fff;
+  font-weight: 700;
+}
+
+.primary-btn:hover,
+.secondary-btn:hover,
+.ghost-btn:hover {
+  transform: translateY(-1px);
+}
+
+.secondary-btn {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--on-surface);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ghost-btn {
+  background: transparent;
+  color: var(--on-surface-variant);
+}
+
+.field-shell {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.field-shell input {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(73, 72, 71, 0.25);
+  background: rgba(6, 15, 26, 0.65);
+  color: var(--on-surface);
+  padding: 0.9rem 1rem;
+}

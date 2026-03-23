@@ -1,0 +1,596 @@
+FORMAT: 1A
+
+# Nexio IMDb Internal API
+
+Internal, non-commercial IMDb dataset API and portal for Nexio.
+
+# Group Platform
+
+## Health Check [/healthz]
+
+### Get Health [GET]
+
++ Response 200 (application/json)
+
+    + Attributes
+
+            {
+              "status": "ok"
+            }
+
+## Readiness Check [/readyz]
+
+### Get Readiness [GET]
+
++ Response 200 (application/json)
+
+    + Attributes
+
+            {
+              "status": "ready"
+            }
+
+## Snapshot Metadata [/v1/meta/snapshots]
+
+### List Snapshots [GET]
+
++ Response 200 (application/json)
+    + Attributes (array[Snapshot])
+
+## Dataset Stats [/v1/meta/stats]
+
+### Get Stats [GET]
+
++ Response 200 (application/json)
+    + Attributes (PlatformStats)
+
+# Group Titles
+
+## Title Detail [/v1/titles/{tconst}]
+
++ Parameters
+    + tconst: `tt27444205` (string, required)
+
+### Get Title [GET]
+
++ Response 200 (application/json)
+    + Attributes (TitleDetail)
+
++ Response 404 (application/json)
+    + Attributes (ErrorEnvelope)
+
+## Title Resolve [/v1/titles/resolve{?title,titleType,year}]
+
+### Resolve Title [GET]
+
++ Parameters
+    + title: `Paradise` (string, required)
+    + titleType: `tvSeries` (string, optional)
+    + year: `2025` (number, optional)
+
++ Response 200 (application/json)
+    + Attributes (ResolvedTitleResponse)
+
++ Response 404 (application/json)
+    + Attributes (ErrorEnvelope)
+
+## Title Search [/v1/titles/search{?q,titleType,year,includeAkas}]
+
+### Search Titles [GET]
+
++ Parameters
+    + q: `Paradise` (string, required)
+    + titleType: `tvSeries` (string, optional)
+    + year: `2025` (number, optional)
+    + includeAkas: `true` (boolean, optional)
+
++ Response 200 (application/json)
+    + Attributes (TitleSearchResponse)
+
+## Title Bulk Get [/v1/titles/bulk/get]
+
+### Bulk Get Titles [POST]
+
++ Request (application/json)
+    + Attributes (BulkLookupRequest)
+
++ Response 200 (application/json)
+    + Attributes (BulkTitleResponse)
+
+## Title Bulk Resolve [/v1/titles/bulk/resolve]
+
+### Bulk Resolve Titles [POST]
+
++ Request (application/json)
+    + Attributes (BulkResolveRequest)
+
++ Response 200 (application/json)
+    + Attributes (BulkResolvedTitleResponse)
+
+## Title Credits [/v1/titles/{tconst}/credits]
+
++ Parameters
+    + tconst: `tt27444205` (string, required)
+
+### Get Credits [GET]
+
++ Response 200 (application/json)
+    + Attributes (CreditsResponse)
+
+## Title Principals [/v1/titles/{tconst}/principals]
+
++ Parameters
+    + tconst: `tt27444205` (string, required)
+
+### Get Principals [GET]
+
++ Response 200 (application/json)
+    + Attributes (PrincipalsResponse)
+
+## Title Crew [/v1/titles/{tconst}/crew]
+
++ Parameters
+    + tconst: `tt27444205` (string, required)
+
+### Get Crew [GET]
+
++ Response 200 (application/json)
+    + Attributes (CrewResponse)
+
+## Title Alternate Titles [/v1/titles/{tconst}/akas]
+
++ Parameters
+    + tconst: `tt27444205` (string, required)
+
+### Get Alternate Titles [GET]
+
++ Response 200 (application/json)
+    + Attributes (AkasResponse)
+
+# Group Ratings
+
+## Title Rating [/v1/ratings/{tconst}]
+
++ Parameters
+    + tconst: `tt32459853` (string, required)
+
+### Get Rating [GET]
+
++ Response 200 (application/json)
+    + Attributes (Rating)
+
+## Ratings Bulk [/v1/ratings/bulk]
+
+### Bulk Get Ratings [POST]
+
++ Request (application/json)
+    + Attributes (BulkLookupRequest)
+
++ Response 200 (application/json)
+    + Attributes (BulkRatingsResponse)
+
+# Group Series
+
+## Series Episodes [/v1/series/{tconst}/episodes]
+
++ Parameters
+    + tconst: `tt27444205` (string, required)
+
+### Get Episodes [GET]
+
++ Response 200 (application/json)
+    + Attributes (SeriesEpisodesResponse)
+
+## Series Episode Ratings [/v1/series/{tconst}/episode-ratings]
+
++ Parameters
+    + tconst: `tt27444205` (string, required)
+
+### Get Episode Ratings [GET]
+
++ Response 200 (application/json)
+    + Attributes (SeriesEpisodeRatingsResponse)
+
+## Resolve Series Episode Ratings [/v1/series/resolve/episode-ratings{?title,titleType,year}]
+
+### Resolve Series Episode Ratings [GET]
+
++ Parameters
+    + title: `Paradise` (string, required)
+    + titleType: `tvSeries` (string, optional)
+    + year: `2025` (number, optional)
+
++ Response 200 (application/json)
+    + Attributes (SeriesEpisodeRatingsResponse)
+
+## Series Episode Ratings Bulk [/v1/series/bulk/episode-ratings]
+
+### Bulk Get Series Episode Ratings [POST]
+
++ Request (application/json)
+    + Attributes (BulkLookupRequest)
+
++ Response 200 (application/json)
+    + Attributes (BulkSeriesEpisodeRatingsResponse)
+
+## Episode Detail [/v1/episodes/{tconst}]
+
++ Parameters
+    + tconst: `tt32459853` (string, required)
+
+### Get Episode [GET]
+
++ Response 200 (application/json)
+    + Attributes (EpisodeDetail)
+
+## Episode Bulk [/v1/episodes/bulk]
+
+### Bulk Get Episodes [POST]
+
++ Request (application/json)
+    + Attributes (BulkLookupRequest)
+
++ Response 200 (application/json)
+    + Attributes (BulkEpisodeResponse)
+
+# Group Names
+
+## Name Detail [/v1/names/{nconst}]
+
++ Parameters
+    + nconst: `nm1250791` (string, required)
+
+### Get Name [GET]
+
++ Response 200 (application/json)
+    + Attributes (NameDetail)
+
+## Name Search [/v1/names/search{?q}]
+
+### Search Names [GET]
+
++ Parameters
+    + q: `Sterling K. Brown` (string, required)
+
++ Response 200 (application/json)
+    + Attributes (NameSearchResponse)
+
+## Name Titles [/v1/names/{nconst}/titles]
+
++ Parameters
+    + nconst: `nm1250791` (string, required)
+
+### Get Titles For Name [GET]
+
++ Response 200 (application/json)
+    + Attributes (NameTitlesResponse)
+
+## Names Bulk [/v1/names/bulk]
+
+### Bulk Get Names [POST]
+
++ Request (application/json)
+    + Attributes (BulkNamesRequest)
+
++ Response 200 (application/json)
+    + Attributes (BulkNamesResponse)
+
+# Group Alternate Titles
+
+## Alternate Title Search [/v1/akas/search{?title,region,language}]
+
+### Search Alternate Titles [GET]
+
++ Parameters
+    + title: `Paradies` (string, required)
+    + region: `DE` (string, optional)
+    + language: `de` (string, optional)
+
++ Response 200 (application/json)
+    + Attributes (AkaSearchResponse)
+
+# Group Bulk Jobs
+
+## Bulk Jobs [/v1/bulk/jobs]
+
+### Create Bulk Job [POST]
+
++ Request (application/json)
+    + Attributes (BulkJobCreateRequest)
+
++ Response 202 (application/json)
+    + Attributes (BulkJob)
+
+## Bulk Job [/v1/bulk/jobs/{jobId}]
+
++ Parameters
+    + jobId: `01HZZZZZZZZZZZZZZZZZZZZZZZ` (string, required)
+
+### Get Bulk Job [GET]
+
++ Response 200 (application/json)
+    + Attributes (BulkJob)
+
+## Bulk Job Result [/v1/bulk/jobs/{jobId}/result]
+
++ Parameters
+    + jobId: `01HZZZZZZZZZZZZZZZZZZZZZZZ` (string, required)
+
+### Download Bulk Job Result [GET]
+
++ Response 200 (application/json)
+    + Attributes (BulkJobResultEnvelope)
+
+# Group Portal Auth
+
+## Start Google Login [/auth/google]
+
+### Redirect To Google [GET]
+
++ Response 302
+
+## OAuth Callback [/auth/callback]
+
+### Complete Google Login [GET]
+
++ Response 302
+
++ Response 401 (application/json)
+    + Attributes (ErrorEnvelope)
+
+## Session [/auth/session]
+
+### Get Session [GET]
+
++ Response 200 (application/json)
+    + Attributes (PortalSession)
+
++ Response 401 (application/json)
+    + Attributes (ErrorEnvelope)
+
+## Logout [/auth/logout]
+
+### Logout [POST]
+
++ Response 204
+
+# Data Structures
+
+## ErrorEnvelope (object)
++ error: unauthorized (string, required)
++ message: Missing API key. (string, required)
++ requestId: `3f1da40a` (string, required)
+
+## Snapshot (object)
++ id: `01HZZZZZZZZZZZZZZZZZZZZZZZ` (string, required)
++ status: ready (string, required)
++ sourceUpdatedAt: `2026-03-22T12:34:20Z` (string, required)
++ importedAt: `2026-03-22T18:02:11Z` (string, required)
++ datasetVersion: `2026-03-22` (string, required)
+
+## PlatformStats (object)
++ snapshotCount: 12 (number, required)
++ titleCount: 10900000 (number, required)
++ ratingCount: 1600000 (number, required)
++ episodeCount: 6200000 (number, required)
++ nameCount: 14000000 (number, required)
+
+## Resolution (object)
++ input: Paradise (string, required)
++ resolvedTconst: tt27444205 (string, required)
++ matchReason: exact_primary_title_with_filters (string, required)
++ appliedFilters (object)
+    + titleType: tvSeries (string)
+    + year: 2025 (number)
++ alternatives (array[TitleSummary], optional)
+
+## TitleSummary (object)
++ tconst: tt27444205 (string, required)
++ titleType: tvSeries (string, required)
++ primaryTitle: Paradise (string, required)
++ originalTitle: Paradise (string, required)
++ isAdult: false (boolean, required)
++ startYear: 2025 (number, optional)
++ endYear: null (number, nullable)
++ runtimeMinutes: null (number, nullable)
++ genres (array[string], required)
+    + Action
+    + Drama
+    + Thriller
++ rating (RatingSummary, optional)
+
+## RatingSummary (object)
++ averageRating: 7.8 (number, required)
++ numVotes: 1500 (number, required)
+
+## TitleDetail (object)
++ title (TitleSummary, required)
++ rating (RatingSummary, optional)
++ episodeInfo (EpisodeInfo, optional)
++ crew (CrewMemberSummary, optional)
++ principals (array[PrincipalCredit], optional)
+
+## Rating (object)
++ tconst: tt32459853 (string, required)
++ averageRating: 7.8 (number, required)
++ numVotes: 1500 (number, required)
+
+## EpisodeInfo (object)
++ parentTconst: tt27444205 (string, required)
++ seasonNumber: 1 (number, optional)
++ episodeNumber: 2 (number, optional)
+
+## EpisodeRating (object)
++ tconst: tt32459853 (string, required)
++ seasonNumber: 1 (number, optional)
++ episodeNumber: 2 (number, optional)
++ averageRating: 7.8 (number, required)
++ numVotes: 1500 (number, required)
+
+## EpisodeDetail (object)
++ episode (TitleSummary, required)
++ episodeInfo (EpisodeInfo, required)
++ rating (RatingSummary, optional)
+
+## SeriesEpisodeRatingsResponse (object)
++ series (TitleSummary, required)
++ resolution (Resolution, optional)
++ episodes (array[EpisodeRating], required)
+
+## SeriesEpisodesResponse (object)
++ series (TitleSummary, required)
++ episodes (array[EpisodeDetail], required)
+
+## PrincipalCredit (object)
++ ordering: 1 (number, required)
++ nconst: nm1250791 (string, required)
++ category: actor (string, required)
++ job: null (string, nullable)
++ characters (array[string], optional)
+    + Xavier Collins
++ name (NameSummary, optional)
+
+## CrewCredit (object)
++ role: director (string, required)
++ nconst: nm0275629 (string, required)
++ name (NameSummary, optional)
+
+## CrewMemberSummary (object)
++ directors (array[CrewCredit], required)
++ writers (array[CrewCredit], required)
+
+## CreditsResponse (object)
++ title (TitleSummary, required)
++ crew (CrewMemberSummary, required)
++ principals (array[PrincipalCredit], required)
+
+## PrincipalsResponse (object)
++ title (TitleSummary, required)
++ principals (array[PrincipalCredit], required)
+
+## CrewResponse (object)
++ title (TitleSummary, required)
++ crew (CrewMemberSummary, required)
+
+## AlternateTitle (object)
++ title: Paradies (string, required)
++ region: DE (string, optional)
++ language: de (string, optional)
++ types (array[string], optional)
++ attributes (array[string], optional)
++ isOriginalTitle: false (boolean, required)
+
+## AkasResponse (object)
++ title (TitleSummary, required)
++ akas (array[AlternateTitle], required)
+
+## AkaSearchHit (object)
++ title (AlternateTitle, required)
++ matchedTconst: tt27444205 (string, required)
++ matchedPrimaryTitle: Paradise (string, required)
+
+## AkaSearchResponse (object)
++ results (array[AkaSearchHit], required)
+
+## NameSummary (object)
++ nconst: nm1250791 (string, required)
++ primaryName: Sterling K. Brown (string, required)
++ birthYear: 1976 (number, optional)
++ deathYear: null (number, nullable)
++ primaryProfession (array[string], optional)
+
+## NameDetail (object)
++ name (NameSummary, required)
++ knownForTitles (array[string], required)
+    + tt27444205
+    + tt1442437
+
+## NameTitleCredit (object)
++ tconst: tt27444205 (string, required)
++ category: actor (string, required)
++ job: null (string, nullable)
++ ordering: 1 (number, required)
++ title (TitleSummary, optional)
+
+## NameSearchResponse (object)
++ results (array[NameSummary], required)
+
+## NameTitlesResponse (object)
++ name (NameSummary, required)
++ titles (array[NameTitleCredit], required)
+
+## ResolvedTitleResponse (object)
++ resolution (Resolution, required)
++ title (TitleDetail, required)
+
+## TitleSearchResponse (object)
++ results (array[TitleSummary], required)
+
+## BulkLookupRequest (object)
++ identifiers (array[string], required)
+    + tt27444205
+    + tt32459853
+
+## BulkResolveItem (object)
++ title: Paradise (string, required)
++ titleType: tvSeries (string, optional)
++ year: 2025 (number, optional)
+
+## BulkResolveRequest (object)
++ items (array[BulkResolveItem], required)
+
+## BulkTitleResponse (object)
++ results (array[TitleDetail], required)
++ missing (array[string], required)
+
+## BulkResolvedTitleResponse (object)
++ results (array[ResolvedTitleResponse], required)
+
+## BulkRatingsResponse (object)
++ results (array[Rating], required)
++ missing (array[string], required)
+
+## BulkEpisodeResponse (object)
++ results (array[EpisodeDetail], required)
++ missing (array[string], required)
+
+## BulkSeriesEpisodeRatingsResponse (object)
++ results (array[SeriesEpisodeRatingsResponse], required)
++ missing (array[string], required)
+
+## BulkNamesRequest (object)
++ identifiers (array[string], required)
+    + nm1250791
+    + nm0629855
+
+## BulkNamesResponse (object)
++ results (array[NameDetail], required)
++ missing (array[string], required)
+
+## BulkJobCreateRequest (object)
++ operation: titles.bulk.get (string, required)
++ payload (object, required)
+
+## BulkJob (object)
++ id: `01HZZZZZZZZZZZZZZZZZZZZZZZ` (string, required)
++ status: queued (string, required)
++ operation: titles.bulk.get (string, required)
++ createdAt: `2026-03-23T18:02:11Z` (string, required)
++ updatedAt: `2026-03-23T18:02:11Z` (string, required)
++ expiresAt: `2026-03-30T18:02:11Z` (string, required)
++ resultUrl: /v1/bulk/jobs/01HZZZZZZZZZZZZZZZZZZZZZZZ/result (string, optional)
+
+## BulkJobResultEnvelope (object)
++ job (BulkJob, required)
++ result (object, required)
+
+## PortalUser (object)
++ id: `01HUSERZZZZZZZZZZZZZZZZZZZ` (string, required)
++ email: engineer@nexioapp.org (string, required)
++ displayName: Nexio Engineer (string, optional)
++ avatarUrl: `https://lh3.googleusercontent.com/...` (string, optional)
+
+## PortalSession (object)
++ authenticated: true (boolean, required)
++ user (PortalUser, required)
+
