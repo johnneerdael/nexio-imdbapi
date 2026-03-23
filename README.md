@@ -32,3 +32,7 @@ The platform is intended for internal, non-commercial use against the public IMD
 
 - Production deployment guide: [`docs/deployment.md`](/Users/jneerdael/Scripts/imdb-scrape/docs/deployment.md)
 - Docker Compose deployment guide: [`docs/docker-compose-deployment.md`](/Users/jneerdael/Scripts/imdb-scrape/docs/docker-compose-deployment.md)
+- Proxy overlays:
+  - [`docker-compose.caddy.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.caddy.yml)
+  - [`docker-compose.nginx.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.nginx.yml)
+  - [`docker-compose.traefik.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.traefik.yml)

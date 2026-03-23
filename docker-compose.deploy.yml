@@ -96,23 +96,5 @@ services:
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME}
       API_KEY_PEPPER: ${API_KEY_PEPPER}
 
-  caddy:
-    image: caddy:2.10-alpine
-    restart: unless-stopped
-    depends_on:
-      - web
-      - api
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      APP_DOMAIN: ${APP_DOMAIN}
-    volumes:
-      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-
 volumes:
   postgres_data:
-  caddy_data:
-  caddy_config:

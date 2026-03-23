@@ -7,36 +7,52 @@ This guide deploys the full stack with Docker Compose:
 - Go API
 - Go worker
 - Nuxt web portal
-- Caddy reverse proxy with TLS
+- your choice of reverse proxy:
+  - Caddy
+  - Nginx
+  - Traefik
 
 It is designed for a host serving `https://api.nexioapp.org`.
 
-## Files Added For This Flow
+## Compose Files
+
+Shared application stack:
 
 - [`docker-compose.deploy.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.deploy.yml)
-- [`.env.compose.example`](/Users/jneerdael/Scripts/imdb-scrape/.env.compose.example)
-- [`apps/api/Dockerfile`](/Users/jneerdael/Scripts/imdb-scrape/apps/api/Dockerfile)
-- [`apps/web/Dockerfile`](/Users/jneerdael/Scripts/imdb-scrape/apps/web/Dockerfile)
+
+Proxy overlays:
+
+- [`docker-compose.caddy.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.caddy.yml)
+- [`docker-compose.nginx.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.nginx.yml)
+- [`docker-compose.traefik.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.traefik.yml)
+
+Proxy configs:
+
 - [`infra/caddy/Caddyfile`](/Users/jneerdael/Scripts/imdb-scrape/infra/caddy/Caddyfile)
+- [`infra/nginx/default.conf`](/Users/jneerdael/Scripts/imdb-scrape/infra/nginx/default.conf)
 
-## How It Works
+Optional host-managed proxy override:
 
-Service order:
+- [`docker-compose.host-proxy.override.yml.example`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.host-proxy.override.yml.example)
 
-1. `postgres` starts and becomes healthy.
-2. `migrate` waits for Postgres and runs:
-   - [`infra/postgres/migrations/0001_init.sql`](/Users/jneerdael/Scripts/imdb-scrape/infra/postgres/migrations/0001_init.sql)
-3. `api`, `worker`, and `web` start only after the migration container exits successfully.
-4. `caddy` exposes ports `80` and `443`.
+## How The Stack Is Split
 
-The migration step is safe to rerun because the schema SQL is written with `IF NOT EXISTS` and `CREATE OR REPLACE VIEW`.
+The base Compose file contains only the application services:
 
-## Prerequisites
+- `postgres`
+- `migrate`
+- `api`
+- `worker`
+- `web`
 
-- Docker Engine with Compose plugin installed
-- DNS for `api.nexioapp.org` pointing to the server
-- Google OAuth client configured with:
-  - redirect URI: `https://api.nexioapp.org/auth/callback`
+The proxy overlay adds the edge service and public ports.
+
+Required routing split for every proxy:
+
+- `/v1/*` -> Go API
+- `/healthz` -> Go API
+- `/readyz` -> Go API
+- everything else -> Nuxt web app
 
 ## Environment File
 
@@ -50,6 +66,7 @@ Edit `.env.compose`:
 
 ```dotenv
 APP_DOMAIN=api.nexioapp.org
+TRAEFIK_ACME_EMAIL=infra@nexioapp.org
 
 POSTGRES_DB=nexio_imdb
 POSTGRES_USER=nexio_imdb
@@ -75,20 +92,147 @@ Important:
 - `SESSION_COOKIE_SECRET` must stay stable between deployments.
 - `API_KEY_PEPPER` must stay stable between deployments.
 - if `API_KEY_PEPPER` changes, all existing API keys become invalid.
+- `TRAEFIK_ACME_EMAIL` is only used by the Traefik overlay.
 
-## Start The Stack
+## Start With Caddy
 
-Build and launch:
-
-```bash
-docker compose --env-file .env.compose -f docker-compose.deploy.yml up -d --build
-```
-
-Watch startup:
+Use this when you want Docker Compose to handle the full public edge with automatic TLS:
 
 ```bash
-docker compose --env-file .env.compose -f docker-compose.deploy.yml logs -f
+docker compose \
+  --env-file .env.compose \
+  -f docker-compose.deploy.yml \
+  -f docker-compose.caddy.yml \
+  up -d --build
 ```
+
+This publishes:
+
+- `80/tcp`
+- `443/tcp`
+
+Caddy terminates TLS and routes:
+
+- `/v1/*`, `/healthz`, `/readyz` -> `api:8080`
+- everything else -> `web:3000`
+
+## Start With Traefik
+
+Use this when you want a Compose-managed proxy with automatic Let's Encrypt support and Docker-native routing:
+
+```bash
+docker compose \
+  --env-file .env.compose \
+  -f docker-compose.deploy.yml \
+  -f docker-compose.traefik.yml \
+  up -d --build
+```
+
+This publishes:
+
+- `80/tcp`
+- `443/tcp`
+
+Notes:
+
+- Traefik redirects HTTP to HTTPS automatically.
+- The ACME account email comes from `TRAEFIK_ACME_EMAIL`.
+- The API router is given higher priority than the web router so `/v1/*`, `/healthz`, and `/readyz` always reach the Go API.
+
+## Start With Nginx
+
+Use this when you want a simple Compose-managed HTTP reverse proxy:
+
+```bash
+docker compose \
+  --env-file .env.compose \
+  -f docker-compose.deploy.yml \
+  -f docker-compose.nginx.yml \
+  up -d --build
+```
+
+This publishes:
+
+- `80/tcp`
+
+Notes:
+
+- The bundled Nginx overlay is HTTP-only.
+- If you need public HTTPS with Nginx, terminate TLS in front of it or extend the overlay with your own certificate mount and `listen 443 ssl` server block.
+
+## Use A Custom Host-Level Caddy Installation
+
+If you already run Caddy on the host and only want Compose to run the app stack, expose the internal services on loopback:
+
+```bash
+cp docker-compose.host-proxy.override.yml.example docker-compose.host-proxy.override.yml
+docker compose \
+  --env-file .env.compose \
+  -f docker-compose.deploy.yml \
+  -f docker-compose.host-proxy.override.yml \
+  up -d --build
+```
+
+That publishes:
+
+- `127.0.0.1:8080` -> Go API
+- `127.0.0.1:3000` -> Nuxt web
+
+Example host-level Caddy config:
+
+```caddy
+api.nexioapp.org {
+    encode zstd gzip
+
+    handle /v1/* {
+        reverse_proxy 127.0.0.1:8080
+    }
+
+    handle /healthz {
+        reverse_proxy 127.0.0.1:8080
+    }
+
+    handle /readyz {
+        reverse_proxy 127.0.0.1:8080
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:3000
+    }
+}
+```
+
+## Changing API Or Web Ports
+
+There are two different port layers:
+
+1. internal container ports
+2. host-exposed ports
+
+Internal container ports:
+
+- the API listens on `8080`
+- the Nuxt app listens on `3000`
+
+Those values are baked into the proxy configs and service wiring:
+
+- [`docker-compose.deploy.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.deploy.yml)
+- [`infra/caddy/Caddyfile`](/Users/jneerdael/Scripts/imdb-scrape/infra/caddy/Caddyfile)
+- [`infra/nginx/default.conf`](/Users/jneerdael/Scripts/imdb-scrape/infra/nginx/default.conf)
+- [`docker-compose.traefik.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.traefik.yml)
+
+If you change the API port:
+
+- update `API_ADDRESS` in the `api` service
+- update `API_BASE_URL` in the `web` build arg and env
+- update every proxy target that points to `api:8080`
+
+If you change the web port:
+
+- update the container's listening port in the web image/runtime
+- update every proxy target that points to `web:3000`
+
+If you only need different host-exposed ports for a host-level proxy, change the `ports` section in your override file instead of changing the internal service ports.
 
 ## Health Verification
 
@@ -97,6 +241,13 @@ Check public endpoints:
 ```bash
 curl https://api.nexioapp.org/healthz
 curl https://api.nexioapp.org/readyz
+```
+
+For the HTTP-only Nginx overlay:
+
+```bash
+curl http://api.nexioapp.org/healthz
+curl http://api.nexioapp.org/readyz
 ```
 
 Check service state:
@@ -111,25 +262,9 @@ Inspect logs by service:
 docker compose --env-file .env.compose -f docker-compose.deploy.yml logs -f api
 docker compose --env-file .env.compose -f docker-compose.deploy.yml logs -f worker
 docker compose --env-file .env.compose -f docker-compose.deploy.yml logs -f web
-docker compose --env-file .env.compose -f docker-compose.deploy.yml logs -f caddy
-docker compose --env-file .env.compose -f docker-compose.deploy.yml logs -f migrate
 ```
 
-## First Login
-
-After the stack is live:
-
-1. Open `https://api.nexioapp.org/`
-2. Sign in with an approved Google account
-3. Generate an API key from the portal
-4. Use it against:
-   - `https://api.nexioapp.org/v1/meta/stats`
-
-Example:
-
-```bash
-curl -H "X-API-Key: YOUR_KEY" https://api.nexioapp.org/v1/meta/stats
-```
+Add the active proxy overlay file to the command when you want to inspect that proxy service too.
 
 ## Database Migration Behavior
 
@@ -151,10 +286,14 @@ After pulling new code:
 
 ```bash
 git pull
-docker compose --env-file .env.compose -f docker-compose.deploy.yml up -d --build
+docker compose \
+  --env-file .env.compose \
+  -f docker-compose.deploy.yml \
+  -f docker-compose.caddy.yml \
+  up -d --build
 ```
 
-This rebuilds images, reruns the migration service, and recreates changed containers.
+Replace the last file with the proxy overlay you actually use.
 
 ## Rolling Back
 
@@ -162,7 +301,11 @@ Return to a previous git revision and rebuild:
 
 ```bash
 git checkout <previous-good-commit>
-docker compose --env-file .env.compose -f docker-compose.deploy.yml up -d --build
+docker compose \
+  --env-file .env.compose \
+  -f docker-compose.deploy.yml \
+  -f docker-compose.caddy.yml \
+  up -d --build
 ```
 
 Do not rotate these during rollback unless intended:
@@ -175,14 +318,24 @@ Do not rotate these during rollback unless intended:
 Stop containers:
 
 ```bash
-docker compose --env-file .env.compose -f docker-compose.deploy.yml down
+docker compose \
+  --env-file .env.compose \
+  -f docker-compose.deploy.yml \
+  -f docker-compose.caddy.yml \
+  down
 ```
 
 Stop and remove volumes too:
 
 ```bash
-docker compose --env-file .env.compose -f docker-compose.deploy.yml down -v
+docker compose \
+  --env-file .env.compose \
+  -f docker-compose.deploy.yml \
+  -f docker-compose.caddy.yml \
+  down -v
 ```
+
+Replace the last file with the proxy overlay you actually use.
 
 Warning:
 
@@ -190,30 +343,13 @@ Warning:
 
 ## Data Persistence
 
-Compose volumes used:
+The base stack always uses:
 
 - `postgres_data`
-- `caddy_data`
-- `caddy_config`
 
-`postgres_data` holds the actual application database. Back it up before destructive maintenance.
+The proxy overlays add their own volumes:
 
-## Recommended Production Notes
+- Caddy: `caddy_data`, `caddy_config`
+- Traefik: `traefik_letsencrypt`
 
-- Keep the repo on a stable tagged release or known commit.
-- Put `.env.compose` outside version control.
-- Restrict server firewall to:
-  - `80/tcp`
-  - `443/tcp`
-- Do not expose Postgres publicly unless required.
-- Expect the first IMDb import to take time and bandwidth.
-
-## Optional Direct Service Access
-
-This Compose file does not expose:
-
-- API port `8080`
-- web port `3000`
-- Postgres port `5432`
-
-That is intentional for a cleaner production shape behind Caddy. If you want local direct access for debugging, add temporary `ports` mappings to the relevant services.
+Back up the database before destructive maintenance.
