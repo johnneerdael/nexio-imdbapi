@@ -93,6 +93,7 @@ Important:
 - `APP_DOMAIN` must be the bare host name only, for example `api.nexioapp.org`.
 - Do not include `http://` or `https://` in `APP_DOMAIN`.
 - Compose uses `APP_DOMAIN` to derive `APP_BASE_URL=https://${APP_DOMAIN}` and `GOOGLE_REDIRECT_URL=https://${APP_DOMAIN}/auth/callback`, and the bundled Caddy config also expects a host name instead of a full URL.
+- the `web` service maps these values to `NUXT_*` container env vars internally because Nuxt runtime config expects `NUXT_`-prefixed overrides at production runtime
 - `SESSION_COOKIE_SECRET` must stay stable between deployments.
 - `API_KEY_PEPPER` must stay stable between deployments.
 - if `API_KEY_PEPPER` changes, all existing API keys become invalid.
@@ -205,6 +206,236 @@ api.nexioapp.org {
     }
 }
 ```
+
+## Use A Separate Caddy Stack On A Shared Docker Network
+
+This is often cleaner than loopback port publishing when Caddy already runs in its own Compose project.
+
+Create a shared external Docker network once:
+
+```bash
+docker network create caddy_net
+```
+
+Then connect only the API and web containers to that shared network in your app stack:
+
+```yaml
+services:
+  api:
+    networks:
+      - default
+      - caddy_net
+
+  web:
+    networks:
+      - default
+      - caddy_net
+
+networks:
+  caddy_net:
+    external: true
+```
+
+The full app stack shape looks like this:
+
+```yaml
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  migrate:
+    image: postgres:16-alpine
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+    volumes:
+      - ./infra/postgres/migrations:/migrations:ro
+    command:
+      - /bin/sh
+      - -lc
+      - >
+        until pg_isready -h postgres -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"; do
+          sleep 2;
+        done &&
+        psql -v ON_ERROR_STOP=1 -h postgres -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+        -f /migrations/0001_init.sql
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: api-runtime
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      API_ADDRESS: :8080
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      API_KEY_PEPPER: ${API_KEY_PEPPER}
+      IMDB_DATASET_BASE_URL: ${IMDB_DATASET_BASE_URL}
+      IMDB_SYNC_INTERVAL_HOURS: ${IMDB_SYNC_INTERVAL_HOURS}
+      IMDB_RUN_ON_STARTUP: ${IMDB_RUN_ON_STARTUP}
+      BULK_JOB_POLL_INTERVAL_SECONDS: ${BULK_JOB_POLL_INTERVAL_SECONDS}
+      HTTP_TIMEOUT_MINUTES: ${HTTP_TIMEOUT_MINUTES}
+    networks:
+      - default
+      - caddy_net
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: worker-runtime
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      API_KEY_PEPPER: ${API_KEY_PEPPER}
+      IMDB_DATASET_BASE_URL: ${IMDB_DATASET_BASE_URL}
+      IMDB_SYNC_INTERVAL_HOURS: ${IMDB_SYNC_INTERVAL_HOURS}
+      IMDB_RUN_ON_STARTUP: ${IMDB_RUN_ON_STARTUP}
+      BULK_JOB_POLL_INTERVAL_SECONDS: ${BULK_JOB_POLL_INTERVAL_SECONDS}
+      HTTP_TIMEOUT_MINUTES: ${HTTP_TIMEOUT_MINUTES}
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_BASE_URL: http://api:8080
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      API_BASE_URL: http://api:8080
+      APP_BASE_URL: https://${APP_DOMAIN}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      NUXT_API_BASE_URL: http://api:8080
+      NUXT_PUBLIC_API_BASE_URL: http://api:8080
+      NUXT_APP_BASE_URL: https://${APP_DOMAIN}
+      NUXT_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URL: https://${APP_DOMAIN}/auth/callback
+      NUXT_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      NUXT_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      NUXT_GOOGLE_REDIRECT_URL: https://${APP_DOMAIN}/auth/callback
+      ALLOWED_GOOGLE_EMAILS: ${ALLOWED_GOOGLE_EMAILS}
+      NUXT_ALLOWED_GOOGLE_EMAILS: ${ALLOWED_GOOGLE_EMAILS}
+      SESSION_COOKIE_SECRET: ${SESSION_COOKIE_SECRET}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME}
+      NUXT_SESSION_COOKIE_SECRET: ${SESSION_COOKIE_SECRET}
+      NUXT_SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME}
+      API_KEY_PEPPER: ${API_KEY_PEPPER}
+      NUXT_API_KEY_PEPPER: ${API_KEY_PEPPER}
+    networks:
+      - default
+      - caddy_net
+
+volumes:
+  postgres_data:
+
+networks:
+  caddy_net:
+    external: true
+```
+
+Then your separate Caddy stack joins the same external network:
+
+```yaml
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    cap_add:
+      - NET_BIND_SERVICE
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "80:80/udp"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      CF_API_TOKEN: ${CF_API_TOKEN}
+    networks:
+      - default
+      - caddy_net
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  caddy_net:
+    external: true
+```
+
+That translates directly to a Caddyfile like this:
+
+```caddy
+api.nexioapp.org {
+    encode zstd gzip
+
+    handle /v1/* {
+        reverse_proxy api:8080
+    }
+
+    handle /healthz {
+        reverse_proxy api:8080
+    }
+
+    handle /readyz {
+        reverse_proxy api:8080
+    }
+
+    handle {
+        reverse_proxy web:3000
+    }
+}
+```
+
+Why this works:
+
+- both Compose projects join the same external Docker network, `caddy_net`
+- Docker DNS resolves the service names `api` and `web` on that shared network
+- Caddy can therefore reach `api:8080` and `web:3000` directly without published loopback ports
+
+This is cleaner because:
+
+- the API and portal do not need host `ports:` mappings
+- Caddy stays isolated in its own stack
+- routing remains explicit and easy to debug
+
+Important:
+
+- do not hardcode DNS provider or TLS API credentials directly in the Caddyfile
+- pass them through environment variables or Docker secrets instead
+- if you use OVH or Cloudflare DNS challenge, keep those credentials in the Caddy container env, not in Git-tracked config
 
 ## Changing API Or Web Ports
 

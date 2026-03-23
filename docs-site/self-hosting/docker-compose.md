@@ -66,6 +66,8 @@ docker compose --env-file .env.compose -f docker-compose.deploy.yml -f docker-co
 
 If you want a host-managed proxy, use the loopback override and terminate TLS outside Compose.
 
+Another clean option is a separate Caddy stack connected over a shared external Docker network instead of loopback ports.
+
 ## Port Layout
 
 The internal service ports are fixed in the stack:
@@ -74,6 +76,60 @@ The internal service ports are fixed in the stack:
 - Portal: `3000`
 
 The proxy overlay or host proxy decides whether those services are exposed directly or only through the edge proxy.
+
+## Shared Docker Network With Separate Caddy
+
+If Caddy already lives in its own Compose project, you do not need to publish the API and portal on loopback. Instead:
+
+1. create an external Docker network such as `caddy_net`
+2. attach the `api` and `web` services to it
+3. attach the separate Caddy stack to the same network
+4. point Caddy at `api:8080` and `web:3000`
+
+This keeps the app stack private while still letting Caddy reverse proxy to the containers by service name.
+
+Example app-side network attachment:
+
+```yaml
+services:
+  api:
+    networks:
+      - default
+      - caddy_net
+
+  web:
+    networks:
+      - default
+      - caddy_net
+
+networks:
+  caddy_net:
+    external: true
+```
+
+Example Caddy routing on the shared network:
+
+```caddy
+api.nexioapp.org {
+    handle /v1/* {
+        reverse_proxy api:8080
+    }
+
+    handle /healthz {
+        reverse_proxy api:8080
+    }
+
+    handle /readyz {
+        reverse_proxy api:8080
+    }
+
+    handle {
+        reverse_proxy web:3000
+    }
+}
+```
+
+For the full explanation and complete example stack shapes, see the repository deployment guide at [docs/docker-compose-deployment.md](https://github.com/johnneerdael/nexio-imdbapi/blob/main/docs/docker-compose-deployment.md).
 
 ## Upgrade Flow
 
@@ -86,4 +142,3 @@ For an in-place refresh:
 5. check the health endpoints
 
 Use [Operations runbook](../operations/runbook.md) for the exact verification sequence after deployment.
-

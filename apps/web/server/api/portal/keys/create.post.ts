@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { readBody } from 'h3'
 import { requireSessionUser } from '~/server/utils/session'
 import { useDb } from '~/server/utils/db'
+import { runtimeValue } from '~/server/utils/runtimeValue'
 
 type Body = {
   label?: string
@@ -15,7 +16,7 @@ export default defineEventHandler(async (event) => {
   const session = await requireSessionUser(event)
   const body = await readBody<Body>(event)
   const config = useRuntimeConfig()
-  const pepper = String(config.apiKeyPepper || '')
+  const pepper = runtimeValue(config.apiKeyPepper, ['NUXT_API_KEY_PEPPER', 'API_KEY_PEPPER'])
   if (!pepper) {
     throw createError({ statusCode: 503, statusMessage: 'API key pepper is missing.' })
   }

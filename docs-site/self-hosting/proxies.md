@@ -76,9 +76,16 @@ Relevant files:
 
 - `docker-compose.host-proxy.override.yml.example`
 
+If your Caddy runs in Docker rather than directly on the host, the cleaner pattern is usually a shared external Docker network instead of loopback port publishing. In that model:
+
+- the app stack attaches `api` and `web` to `caddy_net`
+- the separate Caddy stack also joins `caddy_net`
+- the Caddyfile can `reverse_proxy api:8080` and `reverse_proxy web:3000` directly
+
+This gives you the same clean route split without exposing the app containers on host ports.
+
 ## Recommendation
 
 If you do not have a strong preference, start with Caddy.
 
 It is the smallest configuration surface, the route split is obvious, and the resulting behavior is easiest to debug.
-

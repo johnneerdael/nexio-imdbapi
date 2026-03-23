@@ -1,13 +1,14 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
 import { createError } from 'h3'
 import { useRuntimeConfig } from '#imports'
+import { runtimeValue } from './runtimeValue'
 
 const IV_LENGTH = 12
 const TAG_LENGTH = 16
 
 function cookieSecretKey() {
   const config = useRuntimeConfig()
-  const secret = String(config.sessionCookieSecret || '')
+  const secret = runtimeValue(config.sessionCookieSecret, ['NUXT_SESSION_COOKIE_SECRET', 'SESSION_COOKIE_SECRET'])
   if (!secret) {
     throw createError({ statusCode: 503, statusMessage: 'SESSION_COOKIE_SECRET is missing.' })
   }

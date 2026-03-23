@@ -16,19 +16,19 @@ export default defineNuxtConfig({
     }
   },
   runtimeConfig: {
-    googleClientId: '',
-    googleClientSecret: '',
-    googleRedirectUrl: '',
-    allowedGoogleEmails: '',
-    sessionCookieSecret: '',
-    sessionCookieName: 'nexio_imdb_session',
+    googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    googleRedirectUrl: process.env.GOOGLE_REDIRECT_URL || '',
+    allowedGoogleEmails: process.env.ALLOWED_GOOGLE_EMAILS || '',
+    sessionCookieSecret: process.env.SESSION_COOKIE_SECRET || '',
+    sessionCookieName: process.env.SESSION_COOKIE_NAME || 'nexio_imdb_session',
     sessionDurationHours: 336,
-    appBaseUrl: 'http://localhost:3000',
-    apiBaseUrl: 'http://localhost:8080',
-    databaseUrl: '',
-    apiKeyPepper: '',
+    appBaseUrl: process.env.APP_BASE_URL || 'http://localhost:3000',
+    apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:8080',
+    databaseUrl: process.env.DATABASE_URL || '',
+    apiKeyPepper: process.env.API_KEY_PEPPER || '',
     public: {
-      apiBaseUrl: 'http://localhost:8080'
+      apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:8080'
     }
   },
   nitro: {

@@ -27,7 +27,7 @@ The portal needs these runtime values:
 - `GOOGLE_REDIRECT_URL`
 - `ALLOWED_GOOGLE_EMAILS`
 
-The Compose deployment also derives `APP_BASE_URL` from `APP_DOMAIN`. In the existing env examples, the Google redirect URL is `https://api.nexioapp.org/auth/callback` and the allowlist is a comma-separated list of approved email addresses.
+The Compose deployment derives `APP_BASE_URL` and `GOOGLE_REDIRECT_URL` from `APP_DOMAIN`, then maps the relevant web-container values to `NUXT_*` runtime env vars because Nuxt runtime config expects that prefix in production. In the existing env examples, the Google redirect URL is `https://api.nexioapp.org/auth/callback` and the allowlist is a comma-separated list of approved email addresses.
 
 ## Login Flow
 

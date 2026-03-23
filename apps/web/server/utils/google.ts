@@ -3,16 +3,17 @@ import { createHash, randomBytes } from 'node:crypto'
 import { createError, getCookie, setCookie, type H3Event } from 'h3'
 import { useRuntimeConfig } from '#imports'
 import { openCookieValue, sealCookieValue } from './secureCookie'
+import { runtimeValue } from './runtimeValue'
 
 const OAUTH_COOKIE_TTL_SECONDS = 600
 
 function cfg() {
   const config = useRuntimeConfig()
   return {
-    clientId: String(config.googleClientId || ''),
-    clientSecret: String(config.googleClientSecret || ''),
-    redirectUrl: String(config.googleRedirectUrl || ''),
-    appBaseUrl: String(config.appBaseUrl || '')
+    clientId: runtimeValue(config.googleClientId, ['NUXT_GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_ID']),
+    clientSecret: runtimeValue(config.googleClientSecret, ['NUXT_GOOGLE_CLIENT_SECRET', 'GOOGLE_CLIENT_SECRET']),
+    redirectUrl: runtimeValue(config.googleRedirectUrl, ['NUXT_GOOGLE_REDIRECT_URL', 'GOOGLE_REDIRECT_URL']),
+    appBaseUrl: runtimeValue(config.appBaseUrl, ['NUXT_APP_BASE_URL', 'APP_BASE_URL'])
   }
 }
 
@@ -110,7 +111,7 @@ export async function finishGoogleFlow(event: H3Event, code: string, state: stri
 
 export function allowedEmail(email: string) {
   const config = useRuntimeConfig()
-  const allowlist = String(config.allowedGoogleEmails || '')
+  const allowlist = runtimeValue(config.allowedGoogleEmails, ['NUXT_ALLOWED_GOOGLE_EMAILS', 'ALLOWED_GOOGLE_EMAILS'])
     .split(',')
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean)

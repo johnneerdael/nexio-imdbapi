@@ -2,6 +2,7 @@ import { randomBytes, randomUUID, createHash, timingSafeEqual } from 'node:crypt
 import { createError, getCookie, getHeader, setCookie, deleteCookie, type H3Event } from 'h3'
 import { useRuntimeConfig } from '#imports'
 import { useDb } from './db'
+import { runtimeValue } from './runtimeValue'
 
 type SessionRow = {
   session_id: string
@@ -33,8 +34,8 @@ export type SessionUser = {
 function sessionConfig(): Config {
   const config = useRuntimeConfig()
   return {
-    cookieName: String(config.sessionCookieName || 'nexio_imdb_session'),
-    sessionHours: Number(config.sessionDurationHours || 336)
+    cookieName: runtimeValue(config.sessionCookieName, ['NUXT_SESSION_COOKIE_NAME', 'SESSION_COOKIE_NAME'], 'nexio_imdb_session'),
+    sessionHours: Number(runtimeValue(config.sessionDurationHours, ['NUXT_SESSION_DURATION_HOURS', 'SESSION_DURATION_HOURS'], '336'))
   }
 }
 
