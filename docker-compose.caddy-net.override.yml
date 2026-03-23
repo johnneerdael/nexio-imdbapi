@@ -1,0 +1,14 @@
+services:
+  api:
+    networks:
+      - default
+      - caddy_net
+
+  web:
+    networks:
+      - default
+      - caddy_net
+
+networks:
+  caddy_net:
+    external: true

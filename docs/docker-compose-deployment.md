@@ -23,6 +23,7 @@ Shared application stack:
 Proxy overlays:
 
 - [`docker-compose.caddy.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.caddy.yml)
+- [`docker-compose.caddy-net.override.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.caddy-net.override.yml)
 - [`docker-compose.nginx.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.nginx.yml)
 - [`docker-compose.traefik.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.traefik.yml)
 
@@ -217,7 +218,21 @@ Create a shared external Docker network once:
 docker network create caddy_net
 ```
 
-Then connect only the API and web containers to that shared network in your app stack:
+Use the dedicated override file:
+
+- [`docker-compose.caddy-net.override.yml`](/Users/jneerdael/Scripts/imdb-scrape/docker-compose.caddy-net.override.yml)
+
+Start the app stack with it:
+
+```bash
+docker compose \
+  --env-file .env.compose \
+  -f docker-compose.deploy.yml \
+  -f docker-compose.caddy-net.override.yml \
+  up -d --build
+```
+
+The override contains:
 
 ```yaml
 services:
@@ -236,7 +251,9 @@ networks:
     external: true
 ```
 
-The full app stack shape looks like this:
+This means only `api` and `web` join `caddy_net`. `postgres` and `worker` remain on the default project network.
+
+If you want to inline the same shape instead of using the override file, the full app stack looks like this:
 
 ```yaml
 services:

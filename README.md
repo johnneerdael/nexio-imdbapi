@@ -37,5 +37,6 @@ The platform is intended for internal, non-commercial use against the public IMD
 - Docker Compose deployment guide: [`docs/docker-compose-deployment.md`](docs/docker-compose-deployment.md)
 - Proxy overlays:
   - [`docker-compose.caddy.yml`](docker-compose.caddy.yml)
+  - [`docker-compose.caddy-net.override.yml`](docker-compose.caddy-net.override.yml)
   - [`docker-compose.nginx.yml`](docker-compose.nginx.yml)
   - [`docker-compose.traefik.yml`](docker-compose.traefik.yml)

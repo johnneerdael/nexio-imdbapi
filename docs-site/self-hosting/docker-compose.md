@@ -13,6 +13,7 @@ Use these files together:
 
 - `docker-compose.deploy.yml` for the shared application services
 - `docker-compose.caddy.yml` for Caddy
+- `docker-compose.caddy-net.override.yml` for attaching the app stack to an external shared Caddy network
 - `docker-compose.nginx.yml` for Nginx
 - `docker-compose.traefik.yml` for Traefik
 - `docker-compose.host-proxy.override.yml.example` for host-managed proxy setups
@@ -89,6 +90,15 @@ If Caddy already lives in its own Compose project, you do not need to publish th
 This keeps the app stack private while still letting Caddy reverse proxy to the containers by service name.
 
 Example app-side network attachment:
+
+The repository includes that exact attachment as `docker-compose.caddy-net.override.yml`, so you can use:
+
+```bash
+docker network create caddy_net
+docker compose --env-file .env.compose -f docker-compose.deploy.yml -f docker-compose.caddy-net.override.yml up -d --build
+```
+
+The override file contains:
 
 ```yaml
 services:

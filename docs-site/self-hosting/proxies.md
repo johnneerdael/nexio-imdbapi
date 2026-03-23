@@ -75,6 +75,7 @@ Use it when:
 Relevant files:
 
 - `docker-compose.host-proxy.override.yml.example`
+- `docker-compose.caddy-net.override.yml`
 
 If your Caddy runs in Docker rather than directly on the host, the cleaner pattern is usually a shared external Docker network instead of loopback port publishing. In that model:
 

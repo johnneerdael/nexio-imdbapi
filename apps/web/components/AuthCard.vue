@@ -22,7 +22,7 @@
         <div>
           <div class="text-sm uppercase tracking-[0.16em] text-soft">Access</div>
           <p class="text-soft leading-relaxed mt-4">
-            Only email addresses present in `ALLOWED_GOOGLE_EMAILS` can enter the portal.
+            Access is only granted on strict pre-approval basis by NEXIO admins.
           </p>
         </div>
         <a class="primary-btn text-center mt-6" href="/auth/google?next=/">Continue with Google</a>
