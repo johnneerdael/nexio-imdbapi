@@ -12,8 +12,7 @@ function cfg() {
   return {
     clientId: runtimeValue(config.googleClientId, ['NUXT_GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_ID']),
     clientSecret: runtimeValue(config.googleClientSecret, ['NUXT_GOOGLE_CLIENT_SECRET', 'GOOGLE_CLIENT_SECRET']),
-    redirectUrl: runtimeValue(config.googleRedirectUrl, ['NUXT_GOOGLE_REDIRECT_URL', 'GOOGLE_REDIRECT_URL']),
-    appBaseUrl: runtimeValue(config.appBaseUrl, ['NUXT_APP_BASE_URL', 'APP_BASE_URL'])
+    redirectUrl: runtimeValue(config.googleRedirectUrl, ['NUXT_GOOGLE_REDIRECT_URL', 'GOOGLE_REDIRECT_URL'])
   }
 }
 

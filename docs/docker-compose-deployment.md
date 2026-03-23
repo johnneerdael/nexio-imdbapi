@@ -93,8 +93,9 @@ Important:
 
 - `APP_DOMAIN` must be the bare host name only, for example `api.nexioapp.org`.
 - Do not include `http://` or `https://` in `APP_DOMAIN`.
-- Compose uses `APP_DOMAIN` to derive `APP_BASE_URL=https://${APP_DOMAIN}` and `GOOGLE_REDIRECT_URL=https://${APP_DOMAIN}/auth/callback`, and the bundled Caddy config also expects a host name instead of a full URL.
-- the `web` service maps these values to `NUXT_*` container env vars internally because Nuxt runtime config expects `NUXT_`-prefixed overrides at production runtime
+- Compose uses `APP_DOMAIN` to derive `GOOGLE_REDIRECT_URL=https://${APP_DOMAIN}/auth/callback`, and the bundled Caddy config also expects a host name instead of a full URL.
+- the `web` service maps supported runtime values to `NUXT_*` container env vars internally because Nuxt runtime config expects `NUXT_`-prefixed overrides at production runtime
+- do not set `NUXT_APP_BASE_URL` to a full URL. Nuxt reserves `app.baseURL` for a path prefix like `/`, and overriding it with `https://...` breaks page routing.
 - `SESSION_COOKIE_SECRET` must stay stable between deployments.
 - `API_KEY_PEPPER` must stay stable between deployments.
 - if `API_KEY_PEPPER` changes, all existing API keys become invalid.
@@ -347,11 +348,9 @@ services:
     environment:
       NODE_ENV: production
       API_BASE_URL: http://api:8080
-      APP_BASE_URL: https://${APP_DOMAIN}
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
       NUXT_API_BASE_URL: http://api:8080
       NUXT_PUBLIC_API_BASE_URL: http://api:8080
-      NUXT_APP_BASE_URL: https://${APP_DOMAIN}
       NUXT_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}

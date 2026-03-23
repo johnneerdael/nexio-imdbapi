@@ -27,7 +27,9 @@ The portal needs these runtime values:
 - `GOOGLE_REDIRECT_URL`
 - `ALLOWED_GOOGLE_EMAILS`
 
-The Compose deployment derives `APP_BASE_URL` and `GOOGLE_REDIRECT_URL` from `APP_DOMAIN`, then maps the relevant web-container values to `NUXT_*` runtime env vars because Nuxt runtime config expects that prefix in production. In the existing env examples, the Google redirect URL is `https://api.nexioapp.org/auth/callback` and the allowlist is a comma-separated list of approved email addresses.
+The Compose deployment derives `GOOGLE_REDIRECT_URL` from `APP_DOMAIN`, then maps the relevant web-container values to `NUXT_*` runtime env vars because Nuxt runtime config expects that prefix in production. In the existing env examples, the Google redirect URL is `https://api.nexioapp.org/auth/callback` and the allowlist is a comma-separated list of approved email addresses.
+
+Do not set `NUXT_APP_BASE_URL` to the public site URL. Nuxt reserves that key for a path prefix like `/`, and overriding it with `https://api.nexioapp.org` breaks page routing and causes JSON 404 responses for portal pages.
 
 ## Login Flow
 

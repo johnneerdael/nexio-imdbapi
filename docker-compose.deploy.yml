@@ -86,11 +86,9 @@ services:
     environment:
       NODE_ENV: production
       API_BASE_URL: http://api:8080
-      APP_BASE_URL: https://${APP_DOMAIN}
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
       NUXT_API_BASE_URL: http://api:8080
       NUXT_PUBLIC_API_BASE_URL: http://api:8080
-      NUXT_APP_BASE_URL: https://${APP_DOMAIN}
       NUXT_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}

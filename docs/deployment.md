@@ -156,7 +156,6 @@ Example:
 ```dotenv
 API_ADDRESS=127.0.0.1:8080
 API_BASE_URL=http://127.0.0.1:8080
-APP_BASE_URL=https://api.nexioapp.org
 
 POSTGRES_DB=nexio_imdb
 POSTGRES_USER=nexio_imdb
@@ -183,7 +182,6 @@ HTTP_TIMEOUT_MINUTES=30
 Important notes:
 
 - `API_BASE_URL` is required by the Nuxt build and Nitro route proxy.
-- `APP_BASE_URL` must be a full URL including scheme, for example `https://api.nexioapp.org`.
 - `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD` are useful if you also bootstrap Postgres or reuse the same values in Docker Compose.
 - `DATABASE_URL` is required by:
   - Go API
@@ -197,7 +195,8 @@ For Docker Compose deployments:
 
 - use `APP_DOMAIN` as the bare host name only, for example `api.nexioapp.org`
 - do not include `http://` or `https://` in `APP_DOMAIN`
-- the Compose stack derives `APP_BASE_URL` and `GOOGLE_REDIRECT_URL` from `APP_DOMAIN`
+- the Compose stack derives `GOOGLE_REDIRECT_URL` from `APP_DOMAIN`
+- do not set `NUXT_APP_BASE_URL` to a full URL, because Nuxt uses that key for its internal route base path rather than the external site URL
 
 Lock down permissions:
 

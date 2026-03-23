@@ -23,7 +23,6 @@ export default defineNuxtConfig({
     sessionCookieSecret: process.env.SESSION_COOKIE_SECRET || '',
     sessionCookieName: process.env.SESSION_COOKIE_NAME || 'nexio_imdb_session',
     sessionDurationHours: 336,
-    appBaseUrl: process.env.APP_BASE_URL || 'http://localhost:3000',
     apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:8080',
     databaseUrl: process.env.DATABASE_URL || '',
     apiKeyPepper: process.env.API_KEY_PEPPER || '',
