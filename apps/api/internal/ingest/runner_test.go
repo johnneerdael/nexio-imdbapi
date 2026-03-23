@@ -2,8 +2,11 @@ package ingest
 
 import (
 	"bytes"
+	"io"
+	"log"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestTransformTSVToCopyCSVSkipsHeaderAndEscapesQuotes(t *testing.T) {
@@ -29,5 +32,38 @@ func TestTransformTSVToCopyCSVSkipsHeaderAndEscapesQuotes(t *testing.T) {
 	}
 	if !strings.Contains(got, "tt0000001\tshort\tCarmencita") {
 		t.Fatalf("expected second record to be preserved, got %q", got)
+	}
+}
+
+func TestDownloadProgressReaderLogsProgressAndCompletion(t *testing.T) {
+	t.Parallel()
+
+	var logs bytes.Buffer
+	reader := &downloadProgressReader{
+		reader:       strings.NewReader("abcdef"),
+		logger:       log.New(&logs, "", 0),
+		datasetName:  "title.ratings.tsv.gz",
+		contentBytes: 6,
+		logEvery:     3,
+		startedAt:    time.Unix(0, 0),
+	}
+
+	buf := make([]byte, 2)
+	for {
+		_, err := reader.Read(buf)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("read returned error: %v", err)
+		}
+	}
+
+	got := logs.String()
+	if !strings.Contains(got, "download progress title.ratings.tsv.gz: 4/6 bytes") {
+		t.Fatalf("expected progress log, got %q", got)
+	}
+	if !strings.Contains(got, "download complete title.ratings.tsv.gz: 6/6 bytes") {
+		t.Fatalf("expected completion log, got %q", got)
 	}
 }

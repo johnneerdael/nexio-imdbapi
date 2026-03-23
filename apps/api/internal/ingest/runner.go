@@ -7,6 +7,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -21,6 +22,7 @@ type Runner struct {
 	client   *http.Client
 	baseURL  string
 	datasets []datasetSpec
+	logger   *log.Logger
 }
 
 type Result struct {
@@ -46,12 +48,16 @@ type remoteDataset struct {
 	sourceUpdatedAt *time.Time
 }
 
-func NewRunner(pool *pgxpool.Pool, client *http.Client, baseURL string) *Runner {
+func NewRunner(pool *pgxpool.Pool, client *http.Client, baseURL string, logger *log.Logger) *Runner {
 	baseURL = strings.TrimRight(baseURL, "/")
+	if logger == nil {
+		logger = log.New(io.Discard, "", 0)
+	}
 	return &Runner{
 		pool:    pool,
 		client:  client,
 		baseURL: baseURL,
+		logger:  logger,
 		datasets: []datasetSpec{
 			{
 				Name:      "title.basics.tsv.gz",
@@ -113,7 +119,15 @@ func NewRunner(pool *pgxpool.Pool, client *http.Client, baseURL string) *Runner 
 	}
 }
 
+func (r *Runner) logf(format string, args ...any) {
+	if r.logger == nil {
+		return
+	}
+	r.logger.Printf(format, args...)
+}
+
 func (r *Runner) SyncOnce(ctx context.Context) (Result, error) {
+	r.logf("imdb sync checking upstream metadata for %d datasets", len(r.datasets))
 	remote, err := r.fetchRemoteMetadata(ctx)
 	if err != nil {
 		return Result{}, err
@@ -127,11 +141,13 @@ func (r *Runner) SyncOnce(ctx context.Context) (Result, error) {
 		if err := r.upsertSyncState(ctx, remote, nil); err != nil {
 			return Result{}, err
 		}
+		r.logf("imdb sync metadata unchanged for all datasets")
 		return Result{Imported: false}, nil
 	}
 
 	sourceUpdatedAt := latestSourceUpdatedAt(remote)
 	datasetVersion := datasetVersion(sourceUpdatedAt)
+	r.logf("imdb sync changes detected, preparing snapshot for dataset version %s", datasetVersion)
 	snapshotID, err := r.createSnapshot(ctx, sourceUpdatedAt, remote, datasetVersion)
 	if err != nil {
 		return Result{}, err
@@ -243,6 +259,7 @@ func (r *Runner) createSnapshot(ctx context.Context, sourceUpdatedAt *time.Time,
 		return 0, fmt.Errorf("create snapshot row: %w", err)
 	}
 
+	r.logf("imdb sync created snapshot %d for version %s", snapshotID, datasetVersion)
 	return snapshotID, nil
 }
 
@@ -253,7 +270,9 @@ func (r *Runner) importSnapshot(ctx context.Context, snapshotID int64, remote []
 	}
 	defer tx.Rollback(ctx)
 
+	r.logf("imdb sync snapshot %d import started", snapshotID)
 	for _, item := range remote {
+		r.logf("imdb sync preparing staging table %s for %s", item.spec.TempTable, item.spec.Name)
 		if _, err := tx.Exec(ctx, item.spec.CreateSQL); err != nil {
 			return fmt.Errorf("create temp table for %s: %w", item.spec.Name, err)
 		}
@@ -269,14 +288,17 @@ func (r *Runner) importSnapshot(ctx context.Context, snapshotID int64, remote []
 	if err := upsertSyncStateWithExecutor(ctx, tx, remote, &snapshotID); err != nil {
 		return err
 	}
+	r.logf("imdb sync snapshot %d sync state updated", snapshotID)
 
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit import tx: %w", err)
 	}
+	r.logf("imdb sync snapshot %d committed to live tables", snapshotID)
 	return nil
 }
 
 func (r *Runner) copyDataset(ctx context.Context, tx pgx.Tx, item remoteDataset) error {
+	r.logf("imdb sync download started for %s", item.spec.Name)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, item.url, nil)
 	if err != nil {
 		return fmt.Errorf("build GET request for %s: %w", item.spec.Name, err)
@@ -290,7 +312,8 @@ func (r *Runner) copyDataset(ctx context.Context, tx pgx.Tx, item remoteDataset)
 		return fmt.Errorf("download %s returned %s", item.spec.Name, resp.Status)
 	}
 
-	reader, err := gzip.NewReader(resp.Body)
+	progressReader := newDownloadProgressReader(resp.Body, r.logger, item.spec.Name, resp.ContentLength)
+	reader, err := gzip.NewReader(progressReader)
 	if err != nil {
 		return fmt.Errorf("open gzip for %s: %w", item.spec.Name, err)
 	}
@@ -301,9 +324,12 @@ func (r *Runner) copyDataset(ctx context.Context, tx pgx.Tx, item remoteDataset)
 		return fmt.Errorf("prepare %s for copy: %w", item.spec.Name, err)
 	}
 
-	if _, err := tx.Conn().PgConn().CopyFrom(ctx, copyReader, item.spec.CopySQL); err != nil {
+	started := time.Now()
+	tag, err := tx.Conn().PgConn().CopyFrom(ctx, copyReader, item.spec.CopySQL)
+	if err != nil {
 		return fmt.Errorf("copy %s into %s: %w", item.spec.Name, item.spec.TempTable, err)
 	}
+	r.logf("imdb sync copied %s into %s rows=%d duration=%s", item.spec.Name, item.spec.TempTable, tag.RowsAffected(), time.Since(started).Round(time.Second))
 	return nil
 }
 
@@ -351,10 +377,68 @@ func transformTSVToCopyCSV(input io.Reader, output io.Writer, expectedColumns in
 	return nil
 }
 
+type downloadProgressReader struct {
+	reader       io.Reader
+	logger       *log.Logger
+	datasetName  string
+	contentBytes int64
+	downloaded   int64
+	logEvery     int64
+	nextLog      int64
+	startedAt    time.Time
+	completed    bool
+}
+
+func newDownloadProgressReader(reader io.Reader, logger *log.Logger, datasetName string, contentBytes int64) io.Reader {
+	logEvery := int64(64 << 20)
+	return &downloadProgressReader{
+		reader:       reader,
+		logger:       logger,
+		datasetName:  datasetName,
+		contentBytes: contentBytes,
+		logEvery:     logEvery,
+		nextLog:      logEvery,
+		startedAt:    time.Now(),
+	}
+}
+
+func (r *downloadProgressReader) Read(p []byte) (int, error) {
+	n, err := r.reader.Read(p)
+	if n > 0 {
+		r.downloaded += int64(n)
+		for r.logEvery > 0 && r.downloaded >= r.nextLog {
+			r.logProgress("download progress")
+			r.nextLog += r.logEvery
+		}
+	}
+	if err == io.EOF && !r.completed {
+		r.completed = true
+		r.logProgress("download complete")
+	}
+	return n, err
+}
+
+func (r *downloadProgressReader) logProgress(prefix string) {
+	if r.logger == nil {
+		return
+	}
+	duration := time.Since(r.startedAt).Round(time.Second)
+	if r.contentBytes > 0 {
+		r.logger.Printf("%s %s: %d/%d bytes duration=%s", prefix, r.datasetName, r.downloaded, r.contentBytes, duration)
+		return
+	}
+	r.logger.Printf("%s %s: %d bytes duration=%s", prefix, r.datasetName, r.downloaded, duration)
+}
+
 func (r *Runner) normalizeSnapshot(ctx context.Context, tx pgx.Tx, snapshotID int64, sourceUpdatedAt *time.Time, datasetVersion string, remote []remoteDataset) error {
-	statements := []string{
-		`TRUNCATE TABLE title_principals, title_crew_members, title_akas, title_episodes, title_ratings, names, titles RESTART IDENTITY`,
-		fmt.Sprintf(`
+	type normalizeStep struct {
+		name      string
+		statement string
+	}
+
+	steps := []normalizeStep{
+		{name: "truncate live tables", statement: `TRUNCATE TABLE title_principals, title_crew_members, title_akas, title_episodes, title_ratings, names, titles RESTART IDENTITY`},
+		{name: "load titles", statement: fmt.Sprintf(`
 			INSERT INTO titles (tconst, snapshot_id, title_type, primary_title, original_title, is_adult, start_year, end_year, runtime_minutes, genres, created_at, updated_at)
 			SELECT
 				tconst,
@@ -373,8 +457,8 @@ func (r *Runner) normalizeSnapshot(ctx context.Context, tx pgx.Tx, snapshotID in
 				NOW(),
 				NOW()
 			FROM staging_title_basics_raw
-		`, snapshotID),
-		fmt.Sprintf(`
+		`, snapshotID)},
+		{name: "load names", statement: fmt.Sprintf(`
 			INSERT INTO names (nconst, snapshot_id, primary_name, birth_year, death_year, primary_professions, known_for_titles, created_at, updated_at)
 			SELECT
 				nconst,
@@ -393,14 +477,14 @@ func (r *Runner) normalizeSnapshot(ctx context.Context, tx pgx.Tx, snapshotID in
 				NOW(),
 				NOW()
 			FROM staging_name_basics_raw
-		`, snapshotID),
-		`
+		`, snapshotID)},
+		{name: "load ratings", statement: `
 			INSERT INTO title_ratings (tconst, average_rating, num_votes, updated_at)
 			SELECT tconst, average_rating::NUMERIC(3,1), COALESCE(NULLIF(num_votes, ''), '0')::INTEGER, NOW()
 			FROM staging_title_ratings_raw
 			WHERE tconst IN (SELECT tconst FROM titles)
-		`,
-		`
+		`},
+		{name: "load episodes", statement: `
 			INSERT INTO title_episodes (tconst, parent_tconst, season_number, episode_number, created_at)
 			SELECT
 				e.tconst,
@@ -411,8 +495,8 @@ func (r *Runner) normalizeSnapshot(ctx context.Context, tx pgx.Tx, snapshotID in
 			FROM staging_title_episode_raw e
 			JOIN titles child_title ON child_title.tconst = e.tconst
 			JOIN titles parent_title ON parent_title.tconst = e.parent_tconst
-		`,
-		`
+		`},
+		{name: "load principals", statement: `
 			INSERT INTO title_principals (tconst, ordering, nconst, category, job, characters, created_at)
 			SELECT
 				p.tconst,
@@ -428,8 +512,8 @@ func (r *Runner) normalizeSnapshot(ctx context.Context, tx pgx.Tx, snapshotID in
 			FROM staging_title_principals_raw p
 			JOIN titles t ON t.tconst = p.tconst
 			JOIN names n ON n.nconst = p.nconst
-		`,
-		`
+		`},
+		{name: "load directors", statement: `
 			INSERT INTO title_crew_members (tconst, nconst, role, ordering, created_at)
 			SELECT
 				c.tconst,
@@ -443,8 +527,8 @@ func (r *Runner) normalizeSnapshot(ctx context.Context, tx pgx.Tx, snapshotID in
 			JOIN names n ON n.nconst = trim(member.nconst)
 			WHERE trim(member.nconst) <> ''
 			ON CONFLICT DO NOTHING
-		`,
-		`
+		`},
+		{name: "load writers", statement: `
 			INSERT INTO title_crew_members (tconst, nconst, role, ordering, created_at)
 			SELECT
 				c.tconst,
@@ -458,8 +542,8 @@ func (r *Runner) normalizeSnapshot(ctx context.Context, tx pgx.Tx, snapshotID in
 			JOIN names n ON n.nconst = trim(member.nconst)
 			WHERE trim(member.nconst) <> ''
 			ON CONFLICT DO NOTHING
-		`,
-		`
+		`},
+		{name: "load alternate titles", statement: `
 			INSERT INTO title_akas (tconst, ordering, title, region, language, types, attributes, is_original_title, created_at)
 			SELECT
 				a.title_id,
@@ -479,13 +563,13 @@ func (r *Runner) normalizeSnapshot(ctx context.Context, tx pgx.Tx, snapshotID in
 				NOW()
 			FROM staging_title_akas_raw a
 			JOIN titles t ON t.tconst = a.title_id
-		`,
-		`
+		`},
+		{name: "deactivate previous snapshots", statement: `
 			UPDATE imdb_snapshots
 			SET is_active = FALSE
 			WHERE id <> $1
-		`,
-		`
+		`},
+		{name: "finalize snapshot", statement: `
 			UPDATE imdb_snapshots
 			SET
 				status = 'ready',
@@ -499,24 +583,34 @@ func (r *Runner) normalizeSnapshot(ctx context.Context, tx pgx.Tx, snapshotID in
 				rating_count = (SELECT COUNT(*) FROM title_ratings),
 				notes = ''
 			WHERE id = $1
-		`,
+		`},
 	}
 
-	for index, statement := range statements {
+	r.logf("imdb sync snapshot %d normalization started", snapshotID)
+	for index, step := range steps {
+		stepStarted := time.Now()
+		var (
+			tag pgconn.CommandTag
+			err error
+		)
 		switch index {
-		case len(statements) - 2:
-			if _, err := tx.Exec(ctx, statement, snapshotID); err != nil {
-				return fmt.Errorf("deactivate previous snapshots: %w", err)
+		case len(steps) - 2:
+			tag, err = tx.Exec(ctx, step.statement, snapshotID)
+			if err != nil {
+				return fmt.Errorf("%s: %w", step.name, err)
 			}
-		case len(statements) - 1:
-			if _, err := tx.Exec(ctx, statement, snapshotID, datasetVersion, sourceUpdatedAt, joinRemoteValues(remote, func(item remoteDataset) string { return item.etag })); err != nil {
-				return fmt.Errorf("finalize snapshot: %w", err)
+		case len(steps) - 1:
+			tag, err = tx.Exec(ctx, step.statement, snapshotID, datasetVersion, sourceUpdatedAt, joinRemoteValues(remote, func(item remoteDataset) string { return item.etag }))
+			if err != nil {
+				return fmt.Errorf("%s: %w", step.name, err)
 			}
 		default:
-			if _, err := tx.Exec(ctx, statement); err != nil {
-				return fmt.Errorf("normalize dataset statement %d: %w", index+1, err)
+			tag, err = tx.Exec(ctx, step.statement)
+			if err != nil {
+				return fmt.Errorf("%s: %w", step.name, err)
 			}
 		}
+		r.logf("imdb sync snapshot %d step complete: %s rows=%d duration=%s", snapshotID, step.name, tag.RowsAffected(), time.Since(stepStarted).Round(time.Second))
 	}
 
 	return nil

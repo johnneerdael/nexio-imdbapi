@@ -35,7 +35,7 @@ func New(pool *pgxpool.Pool, cfg config.Config, logger *log.Logger) *Service {
 		queries: imdb.NewService(store),
 		ingester: ingest.NewRunner(pool, &http.Client{
 			Timeout: cfg.HTTPTimeout,
-		}, cfg.IMDbDatasetBaseURL),
+		}, cfg.IMDbDatasetBaseURL, logger),
 		cfg:    cfg,
 		logger: logger,
 	}

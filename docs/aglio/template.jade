@@ -14,19 +14,6 @@ html
         style!= self.css
     body.preload.nexio-docs
         .docs-shell
-            .docs-topbar
-                .docs-brand
-                    .docs-brand-mark N
-                    .docs-brand-copy
-                        .docs-kicker Nexio Internal
-                        h1.docs-title= self.api.name || 'API Documentation'
-                        if self.api.description
-                            p.docs-subtitle!= self.markdown(self.api.description)
-                .docs-actions
-                    if self.api.host
-                        a.docs-chip.docs-endpoint(href=self.api.host)= self.api.host
-                    a.docs-chip(href="/docs") Portal View
-                    a.docs-chip(href="/") Control Center
             #nav-background
             .container-fluid.triple.docs-layout
                 .row
