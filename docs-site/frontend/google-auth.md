@@ -33,6 +33,8 @@ The Compose deployment also derives `APP_BASE_URL` from `APP_DOMAIN`. In the exi
 
 The login route is `/auth/google?next=/`.
 
+This is a runtime route on the Nuxt portal application, not a static GitHub Pages route.
+
 The server then:
 
 1. creates state, nonce, and PKCE verifier cookies
@@ -65,4 +67,3 @@ That session controls access to:
 - API key management
 
 For the secrets that protect the session cookie and OAuth exchange, read [Secrets](../security/secrets.md).
-
