@@ -48,6 +48,11 @@ Request flow:
 4. Nuxt proxies API and health routes to the Go API on localhost.
 5. The worker imports IMDb snapshots and processes queued bulk jobs independently.
 
+Proxy routing rule:
+
+- `/v1/*`, `/healthz`, and `/readyz` must reach the Go API
+- everything else should reach the Nuxt app
+
 ## Required DNS And OAuth Setup
 
 Before deployment:
@@ -153,6 +158,10 @@ API_ADDRESS=127.0.0.1:8080
 API_BASE_URL=http://127.0.0.1:8080
 APP_BASE_URL=https://api.nexioapp.org
 
+POSTGRES_DB=nexio_imdb
+POSTGRES_USER=nexio_imdb
+POSTGRES_PASSWORD=CHANGE_ME
+
 DATABASE_URL=postgres://nexio_imdb:CHANGE_ME@127.0.0.1:5432/nexio_imdb?sslmode=disable
 
 GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID
@@ -174,6 +183,7 @@ HTTP_TIMEOUT_MINUTES=30
 Important notes:
 
 - `API_BASE_URL` is required by the Nuxt build and Nitro route proxy.
+- `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD` are useful if you also bootstrap Postgres or reuse the same values in Docker Compose.
 - `DATABASE_URL` is required by:
   - Go API
   - Go worker
@@ -312,7 +322,21 @@ Create a Caddy config:
 api.nexioapp.org {
     encode zstd gzip
 
-    reverse_proxy 127.0.0.1:3000
+    handle /v1/* {
+        reverse_proxy 127.0.0.1:8080
+    }
+
+    handle /healthz {
+        reverse_proxy 127.0.0.1:8080
+    }
+
+    handle /readyz {
+        reverse_proxy 127.0.0.1:8080
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:3000
+    }
 }
 ```
 
@@ -322,7 +346,7 @@ Reload Caddy:
 sudo systemctl reload caddy
 ```
 
-Because Nuxt proxies `/v1`, `/healthz`, and `/readyz` internally, Caddy only needs to forward traffic to the Nuxt app.
+This example routes the API paths directly at the proxy layer so the traffic split is explicit and easy to reason about.
 
 ## First Deployment Checklist
 

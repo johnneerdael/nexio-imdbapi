@@ -1,8 +1,8 @@
 {$APP_DOMAIN} {
-    encode zstd gzip
+	encode zstd gzip
 
-    @api path /v1/* /healthz /readyz
-    reverse_proxy @api api:8080
+	@api path /v1/* /healthz /readyz
+	reverse_proxy @api api:8080
 
-    reverse_proxy web:3000
+	reverse_proxy web:3000
 }
