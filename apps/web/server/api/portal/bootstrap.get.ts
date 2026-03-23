@@ -25,9 +25,9 @@ export default defineEventHandler(async (event) => {
     ),
     db.query(
       `
-        select id, key_prefix, label, created_at, last_used_at, revoked_at
+        select id, key_prefix, name as label, created_at, last_used_at, revoked_at
         from api_keys
-        where created_by_user_id = $1
+        where user_id = $1
         order by created_at desc
       `,
       [session.user.id]
@@ -46,4 +46,3 @@ export default defineEventHandler(async (event) => {
     apiKeys: keys.rows
   }
 })
-

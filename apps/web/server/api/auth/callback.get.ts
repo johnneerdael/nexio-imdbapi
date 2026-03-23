@@ -19,20 +19,20 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = useDb()
-  const userId = crypto.randomUUID()
   const upsert = await db.query<UserRow>(
     `
-      insert into users (id, google_sub, email, display_name, avatar_url, created_at, last_login_at)
-      values ($1, $2, $3, $4, $5, now(), now())
+      insert into users (google_sub, email, display_name, avatar_url, created_at, updated_at, last_login_at)
+      values ($1, $2, $3, $4, now(), now(), now())
       on conflict (google_sub)
       do update set
         email = excluded.email,
         display_name = excluded.display_name,
         avatar_url = excluded.avatar_url,
+        updated_at = now(),
         last_login_at = now()
       returning id
     `,
-    [userId, payload.sub, email, payload.name || null, payload.picture || null]
+    [payload.sub, email, payload.name || null, payload.picture || null]
   )
 
   await createSession(event, {
@@ -49,4 +49,3 @@ export default defineEventHandler(async (event) => {
 
   return sendRedirect(event, nextPath || '/', 302)
 })
-

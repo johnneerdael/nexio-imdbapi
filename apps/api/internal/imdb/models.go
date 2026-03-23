@@ -38,6 +38,9 @@ type QueryService interface {
 	GetNameTitles(ctx context.Context, nconst string) ([]NameTitleCredit, error)
 	GetTitleAkas(ctx context.Context, tconst string) ([]AKA, error)
 	SearchAkas(ctx context.Context, params SearchAkasParams) ([]AKA, error)
+	CreateBulkJob(ctx context.Context, params CreateBulkJobParams) (BulkJob, error)
+	GetBulkJob(ctx context.Context, id string) (BulkJob, error)
+	GetBulkJobResult(ctx context.Context, id string) (BulkJobResult, error)
 }
 
 type Repository interface {
@@ -86,15 +89,15 @@ type Stats struct {
 }
 
 type TitleSummary struct {
-	Tconst        string  `json:"tconst"`
-	TitleType     string  `json:"titleType"`
-	PrimaryTitle  string  `json:"primaryTitle"`
-	OriginalTitle string  `json:"originalTitle,omitempty"`
-	StartYear     *int    `json:"startYear,omitempty"`
-	EndYear       *int    `json:"endYear,omitempty"`
-	IsAdult       bool    `json:"isAdult"`
-	RuntimeMinute *int    `json:"runtimeMinutes,omitempty"`
-	Genres        []string `json:"genres,omitempty"`
+	Tconst         string   `json:"tconst"`
+	TitleType      string   `json:"titleType"`
+	PrimaryTitle   string   `json:"primaryTitle"`
+	OriginalTitle  string   `json:"originalTitle,omitempty"`
+	StartYear      *int     `json:"startYear,omitempty"`
+	EndYear        *int     `json:"endYear,omitempty"`
+	IsAdult        bool     `json:"isAdult"`
+	RuntimeMinutes *int     `json:"runtimeMinutes,omitempty"`
+	Genres         []string `json:"genres,omitempty"`
 }
 
 type TitleDetail struct {
@@ -122,13 +125,13 @@ type EpisodeInfo struct {
 }
 
 type EpisodeRating struct {
-	Tconst         string   `json:"tconst"`
-	ParentTconst   string   `json:"parentTconst"`
-	PrimaryTitle   string   `json:"primaryTitle"`
-	SeasonNumber   *int     `json:"seasonNumber,omitempty"`
-	EpisodeNumber  *int     `json:"episodeNumber,omitempty"`
-	AverageRating  *float64 `json:"averageRating,omitempty"`
-	NumVotes       *int     `json:"numVotes,omitempty"`
+	Tconst        string   `json:"tconst"`
+	ParentTconst  string   `json:"parentTconst"`
+	PrimaryTitle  string   `json:"primaryTitle"`
+	SeasonNumber  *int     `json:"seasonNumber,omitempty"`
+	EpisodeNumber *int     `json:"episodeNumber,omitempty"`
+	AverageRating *float64 `json:"averageRating,omitempty"`
+	NumVotes      *int     `json:"numVotes,omitempty"`
 }
 
 type EpisodeDetail struct {
@@ -138,14 +141,14 @@ type EpisodeDetail struct {
 }
 
 type Principal struct {
-	Ordering   int        `json:"ordering"`
-	Nconst     string     `json:"nconst"`
-	Name       string     `json:"name"`
-	Category   string     `json:"category"`
-	Job        string     `json:"job,omitempty"`
-	Characters []string   `json:"characters,omitempty"`
-	BirthYear  *int       `json:"birthYear,omitempty"`
-	DeathYear  *int       `json:"deathYear,omitempty"`
+	Ordering   int      `json:"ordering"`
+	Nconst     string   `json:"nconst"`
+	Name       string   `json:"name"`
+	Category   string   `json:"category"`
+	Job        string   `json:"job,omitempty"`
+	Characters []string `json:"characters,omitempty"`
+	BirthYear  *int     `json:"birthYear,omitempty"`
+	DeathYear  *int     `json:"deathYear,omitempty"`
 }
 
 type CrewMember struct {
@@ -229,18 +232,42 @@ type ResolutionMetadata struct {
 }
 
 type ResolveTitleResult struct {
-	Title      TitleDetail         `json:"title"`
-	Resolution ResolutionMetadata  `json:"resolution"`
+	Title      TitleDetail        `json:"title"`
+	Resolution ResolutionMetadata `json:"resolution"`
 }
 
 type SeriesEpisodeRatingsResult struct {
-	Series     TitleDetail         `json:"series"`
-	Resolution ResolutionMetadata  `json:"resolution"`
-	Items      []EpisodeRating     `json:"items"`
+	Series     TitleDetail        `json:"series"`
+	Resolution ResolutionMetadata `json:"resolution"`
+	Items      []EpisodeRating    `json:"items"`
 }
 
 type ResolveCandidate struct {
 	Title        TitleSummary
 	MatchedAlias string
 	NumVotes     int
+}
+
+type BulkJob struct {
+	ID        string    `json:"id"`
+	Operation string    `json:"operation"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	ExpiresAt time.Time `json:"expiresAt"`
+	ResultURL string    `json:"resultUrl,omitempty"`
+}
+
+type BulkJobResult struct {
+	Job    BulkJob `json:"job"`
+	Result any     `json:"result"`
+}
+
+type CreateBulkJobParams struct {
+	ID        string
+	Operation string
+	Status    string
+	Payload   []byte
+	Result    []byte
+	ExpiresAt time.Time
 }

@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
     `
       update api_keys
       set revoked_at = now()
-      where id = $1 and created_by_user_id = $2
+      where id = $1 and user_id = $2
     `,
     [id, session.user.id]
   )
@@ -21,4 +21,3 @@ export default defineEventHandler(async (event) => {
     revoked: true
   }
 })
-

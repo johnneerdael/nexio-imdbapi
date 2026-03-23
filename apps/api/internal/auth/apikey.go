@@ -32,10 +32,10 @@ type KeyRecord struct {
 }
 
 type Principal struct {
-	KeyID   int64
-	UserID  *int64
-	Name    string
-	Prefix  string
+	KeyID  int64
+	UserID *int64
+	Name   string
+	Prefix string
 }
 
 type Authenticator interface {

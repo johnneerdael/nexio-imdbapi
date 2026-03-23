@@ -23,20 +23,18 @@ export default defineEventHandler(async (event) => {
   const secret = randomBytes(32).toString('base64url')
   const apiKey = `nexio_${secret}`
   const prefix = apiKey.slice(0, 12)
-  const id = crypto.randomUUID()
-
-  await useDb().query(
+  const result = await useDb().query<{ id: string }>(
     `
-      insert into api_keys (id, created_by_user_id, key_prefix, key_hash, label, created_at)
-      values ($1, $2, $3, $4, $5, now())
+      insert into api_keys (user_id, key_prefix, key_hash, name, created_at)
+      values ($1, $2, $3, $4, now())
+      returning id
     `,
-    [id, session.user.id, prefix, hashApiKey(apiKey, pepper), body.label?.trim() || 'Portal key']
+    [session.user.id, prefix, hashApiKey(apiKey, pepper), body.label?.trim() || 'Portal key']
   )
 
   return {
-    id,
+    id: result.rows[0].id,
     apiKey,
     keyPrefix: prefix
   }
 })
-
