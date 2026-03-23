@@ -1,9 +1,12 @@
 package ingest
 
 import (
+	"bufio"
 	"compress/gzip"
 	"context"
+	"encoding/csv"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -30,6 +33,7 @@ type datasetSpec struct {
 	Name      string
 	Filename  string
 	TempTable string
+	Columns   int
 	CreateSQL string
 	CopySQL   string
 }
@@ -53,50 +57,57 @@ func NewRunner(pool *pgxpool.Pool, client *http.Client, baseURL string) *Runner 
 				Name:      "title.basics.tsv.gz",
 				Filename:  "title.basics.tsv.gz",
 				TempTable: "staging_title_basics_raw",
+				Columns:   9,
 				CreateSQL: `CREATE TEMP TABLE staging_title_basics_raw (tconst TEXT, title_type TEXT, primary_title TEXT, original_title TEXT, is_adult TEXT, start_year TEXT, end_year TEXT, runtime_minutes TEXT, genres TEXT) ON COMMIT DROP`,
-				CopySQL:   `COPY staging_title_basics_raw (tconst, title_type, primary_title, original_title, is_adult, start_year, end_year, runtime_minutes, genres) FROM STDIN WITH (FORMAT csv, DELIMITER E'\t', NULL '\N', HEADER true)`,
+				CopySQL:   `COPY staging_title_basics_raw (tconst, title_type, primary_title, original_title, is_adult, start_year, end_year, runtime_minutes, genres) FROM STDIN WITH (FORMAT csv, DELIMITER E'\t', NULL '\N')`,
 			},
 			{
 				Name:      "title.ratings.tsv.gz",
 				Filename:  "title.ratings.tsv.gz",
 				TempTable: "staging_title_ratings_raw",
+				Columns:   3,
 				CreateSQL: `CREATE TEMP TABLE staging_title_ratings_raw (tconst TEXT, average_rating TEXT, num_votes TEXT) ON COMMIT DROP`,
-				CopySQL:   `COPY staging_title_ratings_raw (tconst, average_rating, num_votes) FROM STDIN WITH (FORMAT csv, DELIMITER E'\t', NULL '\N', HEADER true)`,
+				CopySQL:   `COPY staging_title_ratings_raw (tconst, average_rating, num_votes) FROM STDIN WITH (FORMAT csv, DELIMITER E'\t', NULL '\N')`,
 			},
 			{
 				Name:      "title.episode.tsv.gz",
 				Filename:  "title.episode.tsv.gz",
 				TempTable: "staging_title_episode_raw",
+				Columns:   4,
 				CreateSQL: `CREATE TEMP TABLE staging_title_episode_raw (tconst TEXT, parent_tconst TEXT, season_number TEXT, episode_number TEXT) ON COMMIT DROP`,
-				CopySQL:   `COPY staging_title_episode_raw (tconst, parent_tconst, season_number, episode_number) FROM STDIN WITH (FORMAT csv, DELIMITER E'\t', NULL '\N', HEADER true)`,
+				CopySQL:   `COPY staging_title_episode_raw (tconst, parent_tconst, season_number, episode_number) FROM STDIN WITH (FORMAT csv, DELIMITER E'\t', NULL '\N')`,
 			},
 			{
 				Name:      "title.crew.tsv.gz",
 				Filename:  "title.crew.tsv.gz",
 				TempTable: "staging_title_crew_raw",
+				Columns:   3,
 				CreateSQL: `CREATE TEMP TABLE staging_title_crew_raw (tconst TEXT, directors TEXT, writers TEXT) ON COMMIT DROP`,
-				CopySQL:   `COPY staging_title_crew_raw (tconst, directors, writers) FROM STDIN WITH (FORMAT csv, DELIMITER E'\t', NULL '\N', HEADER true)`,
+				CopySQL:   `COPY staging_title_crew_raw (tconst, directors, writers) FROM STDIN WITH (FORMAT csv, DELIMITER E'\t', NULL '\N')`,
 			},
 			{
 				Name:      "title.principals.tsv.gz",
 				Filename:  "title.principals.tsv.gz",
 				TempTable: "staging_title_principals_raw",
+				Columns:   6,
 				CreateSQL: `CREATE TEMP TABLE staging_title_principals_raw (tconst TEXT, ordering TEXT, nconst TEXT, category TEXT, job TEXT, characters TEXT) ON COMMIT DROP`,
-				CopySQL:   `COPY staging_title_principals_raw (tconst, ordering, nconst, category, job, characters) FROM STDIN WITH (FORMAT csv, DELIMITER E'\t', NULL '\N', HEADER true)`,
+				CopySQL:   `COPY staging_title_principals_raw (tconst, ordering, nconst, category, job, characters) FROM STDIN WITH (FORMAT csv, DELIMITER E'\t', NULL '\N')`,
 			},
 			{
 				Name:      "name.basics.tsv.gz",
 				Filename:  "name.basics.tsv.gz",
 				TempTable: "staging_name_basics_raw",
+				Columns:   6,
 				CreateSQL: `CREATE TEMP TABLE staging_name_basics_raw (nconst TEXT, primary_name TEXT, birth_year TEXT, death_year TEXT, primary_professions TEXT, known_for_titles TEXT) ON COMMIT DROP`,
-				CopySQL:   `COPY staging_name_basics_raw (nconst, primary_name, birth_year, death_year, primary_professions, known_for_titles) FROM STDIN WITH (FORMAT csv, DELIMITER E'\t', NULL '\N', HEADER true)`,
+				CopySQL:   `COPY staging_name_basics_raw (nconst, primary_name, birth_year, death_year, primary_professions, known_for_titles) FROM STDIN WITH (FORMAT csv, DELIMITER E'\t', NULL '\N')`,
 			},
 			{
 				Name:      "title.akas.tsv.gz",
 				Filename:  "title.akas.tsv.gz",
 				TempTable: "staging_title_akas_raw",
+				Columns:   8,
 				CreateSQL: `CREATE TEMP TABLE staging_title_akas_raw (title_id TEXT, ordering TEXT, title TEXT, region TEXT, language TEXT, types TEXT, attributes TEXT, is_original_title TEXT) ON COMMIT DROP`,
-				CopySQL:   `COPY staging_title_akas_raw (title_id, ordering, title, region, language, types, attributes, is_original_title) FROM STDIN WITH (FORMAT csv, DELIMITER E'\t', NULL '\N', HEADER true)`,
+				CopySQL:   `COPY staging_title_akas_raw (title_id, ordering, title, region, language, types, attributes, is_original_title) FROM STDIN WITH (FORMAT csv, DELIMITER E'\t', NULL '\N')`,
 			},
 		},
 	}
@@ -285,8 +296,57 @@ func (r *Runner) copyDataset(ctx context.Context, tx pgx.Tx, item remoteDataset)
 	}
 	defer reader.Close()
 
-	if _, err := tx.Conn().PgConn().CopyFrom(ctx, reader, item.spec.CopySQL); err != nil {
+	copyReader, err := transformTSVForCopy(reader, item.spec.Columns)
+	if err != nil {
+		return fmt.Errorf("prepare %s for copy: %w", item.spec.Name, err)
+	}
+
+	if _, err := tx.Conn().PgConn().CopyFrom(ctx, copyReader, item.spec.CopySQL); err != nil {
 		return fmt.Errorf("copy %s into %s: %w", item.spec.Name, item.spec.TempTable, err)
+	}
+	return nil
+}
+
+func transformTSVForCopy(input io.Reader, expectedColumns int) (io.Reader, error) {
+	pipeReader, pipeWriter := io.Pipe()
+	go func() {
+		defer pipeWriter.Close()
+		if err := transformTSVToCopyCSV(input, pipeWriter, expectedColumns); err != nil {
+			_ = pipeWriter.CloseWithError(err)
+		}
+	}()
+	return pipeReader, nil
+}
+
+func transformTSVToCopyCSV(input io.Reader, output io.Writer, expectedColumns int) error {
+	scanner := bufio.NewScanner(input)
+	scanner.Buffer(make([]byte, 64*1024), 8*1024*1024)
+
+	writer := csv.NewWriter(output)
+	writer.Comma = '\t'
+
+	lineNumber := 0
+	for scanner.Scan() {
+		lineNumber++
+		if lineNumber == 1 {
+			continue
+		}
+
+		record := strings.Split(scanner.Text(), "\t")
+		if len(record) != expectedColumns {
+			return fmt.Errorf("line %d has %d columns, expected %d", lineNumber, len(record), expectedColumns)
+		}
+		if err := writer.Write(record); err != nil {
+			return fmt.Errorf("write transformed record on line %d: %w", lineNumber, err)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("scan tsv input: %w", err)
+	}
+
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return fmt.Errorf("flush transformed csv: %w", err)
 	}
 	return nil
 }
