@@ -1,4 +1,4 @@
-import { createError, deleteCookie, getQuery, sendRedirect } from 'h3'
+import { createError, deleteCookie, getQuery, getRequestURL, sendRedirect } from 'h3'
 import { finishGoogleFlow, allowedEmail } from '~/server/utils/google'
 import { createSession } from '~/server/utils/session'
 import { useDb } from '~/server/utils/db'
@@ -110,14 +110,15 @@ export default defineEventHandler(async (event) => {
       avatarUrl
     })
 
-    console.info('[auth] callback session created', { userId, nextPath })
+    const redirectTo = new URL(nextPath || '/', getRequestURL(event).origin).toString()
+    console.info('[auth] callback session created', { userId, nextPath, redirectTo })
 
     deleteCookie(event, 'oauth_state', { path: '/' })
     deleteCookie(event, 'oauth_nonce', { path: '/' })
     deleteCookie(event, 'oauth_code_verifier', { path: '/' })
     deleteCookie(event, 'oauth_next', { path: '/' })
 
-    return sendRedirect(event, nextPath || '/', 302)
+    return sendRedirect(event, redirectTo, 302)
   } catch (error) {
     console.error('[auth] callback failed', error)
     throw error
