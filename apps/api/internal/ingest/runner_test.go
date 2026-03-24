@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"log"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -71,7 +72,7 @@ func TestDownloadProgressReaderLogsProgressAndCompletion(t *testing.T) {
 func TestLoadNamesStatementSkipsRowsMissingRequiredColumns(t *testing.T) {
 	t.Parallel()
 
-	statement := loadNamesStatement(42)
+	statement := loadNamesStatement(42, "staging_name_basics_raw")
 	if !strings.Contains(statement, "FROM staging_name_basics_raw") {
 		t.Fatalf("expected names statement to read from staging_name_basics_raw, got %q", statement)
 	}
@@ -80,5 +81,62 @@ func TestLoadNamesStatementSkipsRowsMissingRequiredColumns(t *testing.T) {
 	}
 	if !strings.Contains(statement, "AND primary_name IS NOT NULL") {
 		t.Fatalf("expected names statement to guard against null primary_name, got %q", statement)
+	}
+}
+
+func TestCreateRawTableStatementUsesUnloggedTables(t *testing.T) {
+	t.Parallel()
+
+	statement := createRawTableStatement("staging_title_basics_raw_7", "(tconst TEXT)")
+	if !strings.Contains(statement, "CREATE UNLOGGED TABLE staging_title_basics_raw_7") {
+		t.Fatalf("expected unlogged raw table creation, got %q", statement)
+	}
+}
+
+func TestSelectSyncMode(t *testing.T) {
+	t.Parallel()
+
+	if got := selectSyncMode(false, false); got != syncModeFullRefresh {
+		t.Fatalf("expected initial sync to use full refresh, got %q", got)
+	}
+	if got := selectSyncMode(true, false); got != syncModeDelta {
+		t.Fatalf("expected recurring sync to use delta, got %q", got)
+	}
+	if got := selectSyncMode(true, true); got != syncModeFullRefresh {
+		t.Fatalf("expected force flag to select full refresh, got %q", got)
+	}
+}
+
+func TestIndexBuildPlanDefersOnlyRemainingTrigrams(t *testing.T) {
+	t.Parallel()
+
+	base, deferred := buildIndexPlans(tableSet{
+		Titles:           "titles_shadow_7",
+		TitleRatings:     "title_ratings_shadow_7",
+		TitleEpisodes:    "title_episodes_shadow_7",
+		Names:            "names_shadow_7",
+		TitlePrincipals:  "title_principals_shadow_7",
+		TitleCrewMembers: "title_crew_members_shadow_7",
+		TitleAkas:        "title_akas_shadow_7",
+	})
+
+	baseNames := make([]string, 0, len(base))
+	for _, item := range base {
+		baseNames = append(baseNames, item.name)
+	}
+	if slices.Contains(baseNames, "index titles original trgm") {
+		t.Fatalf("did not expect original title trigram index in base plan: %v", baseNames)
+	}
+	if slices.Contains(baseNames, "index names primary trgm") {
+		t.Fatalf("did not expect names trigram index in base plan: %v", baseNames)
+	}
+
+	deferredNames := make([]string, 0, len(deferred))
+	for _, item := range deferred {
+		deferredNames = append(deferredNames, item.name)
+	}
+	expected := []string{"index titles primary trgm", "index akas title trgm"}
+	if !slices.Equal(deferredNames, expected) {
+		t.Fatalf("expected deferred trigram indexes %v, got %v", expected, deferredNames)
 	}
 }

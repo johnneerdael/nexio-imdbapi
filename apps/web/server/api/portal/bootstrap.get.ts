@@ -5,32 +5,47 @@ export default defineEventHandler(async (event) => {
   const session = await requireSessionUser(event)
   const db = useDb()
 
-  const [snapshot, counts, keys] = await Promise.all([
+  const [snapshot, episodeEstimate, keys] = await Promise.all([
     db.query(
       `
         select
           id,
           dataset_name,
+          status,
           source_url,
           notes,
           imported_at,
           completed_at,
           is_active,
+          sync_mode,
           title_count,
           name_count,
-          rating_count
+          rating_count,
+          episode_count,
+          principal_count,
+          crew_member_count,
+          aka_count
         from imdb_snapshots
-        order by imported_at desc nulls last
+        order by is_active desc, imported_at desc nulls last
         limit 1
       `
     ),
     db.query(
       `
         select
-          (select count(*) from titles) as title_count,
-          (select count(*) from title_ratings) as rating_count,
-          (select count(*) from title_episodes) as episode_count,
-          (select count(*) from names) as name_count
+          coalesce(
+            (
+              select case
+                when n_live_tup > 0 then n_live_tup::bigint
+                else 0::bigint
+              end
+              from pg_stat_all_tables
+              where schemaname = 'public'
+                and relname = 'title_episodes'
+              limit 1
+            ),
+            0::bigint
+          ) as episode_count
       `
     ),
     db.query(
@@ -51,16 +66,20 @@ export default defineEventHandler(async (event) => {
         title_count: Number(snapshot.rows[0].title_count || 0),
         name_count: Number(snapshot.rows[0].name_count || 0),
         rating_count: Number(snapshot.rows[0].rating_count || 0),
-        status: snapshot.rows[0].is_active ? 'active' : 'staged'
+        episode_count: Number(snapshot.rows[0].episode_count || 0),
+        principal_count: Number(snapshot.rows[0].principal_count || 0),
+        crew_member_count: Number(snapshot.rows[0].crew_member_count || 0),
+        aka_count: Number(snapshot.rows[0].aka_count || 0),
+        status: String(snapshot.rows[0].status || (snapshot.rows[0].is_active ? 'active' : 'staged'))
       }
     : null
 
-  const statsRow = counts.rows[0]
+  const statsRow = snapshot.rows[0]
     ? {
-        title_count: Number(counts.rows[0].title_count || 0),
-        rating_count: Number(counts.rows[0].rating_count || 0),
-        episode_count: Number(counts.rows[0].episode_count || 0),
-        name_count: Number(counts.rows[0].name_count || 0)
+        title_count: Number(snapshot.rows[0].title_count || 0),
+        rating_count: Number(snapshot.rows[0].rating_count || 0),
+        episode_count: Number(snapshot.rows[0].episode_count || episodeEstimate.rows[0]?.episode_count || 0),
+        name_count: Number(snapshot.rows[0].name_count || 0)
       }
     : {
         title_count: 0,

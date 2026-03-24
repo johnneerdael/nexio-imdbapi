@@ -11,7 +11,7 @@ defineProps<{
     title_count: number
     name_count: number
     rating_count: number
-    status: 'active' | 'staged'
+    status: string
   } | null
   stats: {
     title_count: number

@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS imdb_snapshots (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     dataset_name TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending',
+    sync_mode TEXT NOT NULL DEFAULT 'full_refresh',
     dataset_version TEXT,
     source_url TEXT,
     source_updated_at TIMESTAMPTZ,
@@ -16,6 +17,11 @@ CREATE TABLE IF NOT EXISTS imdb_snapshots (
     title_count BIGINT NOT NULL DEFAULT 0,
     name_count BIGINT NOT NULL DEFAULT 0,
     rating_count BIGINT NOT NULL DEFAULT 0,
+    episode_count BIGINT NOT NULL DEFAULT 0,
+    principal_count BIGINT NOT NULL DEFAULT 0,
+    crew_member_count BIGINT NOT NULL DEFAULT 0,
+    aka_count BIGINT NOT NULL DEFAULT 0,
+    duration_seconds INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -40,6 +46,7 @@ CREATE TABLE IF NOT EXISTS titles (
     end_year INTEGER,
     runtime_minutes INTEGER,
     genres TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+    row_hash TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -48,6 +55,7 @@ CREATE TABLE IF NOT EXISTS title_ratings (
     tconst TEXT PRIMARY KEY REFERENCES titles(tconst) ON DELETE CASCADE,
     average_rating NUMERIC(3,1) NOT NULL,
     num_votes INTEGER NOT NULL DEFAULT 0,
+    row_hash TEXT NOT NULL DEFAULT '',
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -56,6 +64,7 @@ CREATE TABLE IF NOT EXISTS title_episodes (
     parent_tconst TEXT NOT NULL REFERENCES titles(tconst) ON DELETE CASCADE,
     season_number INTEGER,
     episode_number INTEGER,
+    row_hash TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -67,6 +76,7 @@ CREATE TABLE IF NOT EXISTS names (
     death_year INTEGER,
     primary_professions TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
     known_for_titles TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+    row_hash TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -79,6 +89,7 @@ CREATE TABLE IF NOT EXISTS title_principals (
     category TEXT NOT NULL,
     job TEXT,
     characters JSONB,
+    row_hash TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (tconst, ordering)
 );
@@ -89,6 +100,7 @@ CREATE TABLE IF NOT EXISTS title_crew_members (
     nconst TEXT NOT NULL REFERENCES names(nconst) ON DELETE CASCADE,
     role TEXT NOT NULL,
     ordering INTEGER,
+    row_hash TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (tconst, nconst, role, ordering)
 );
@@ -103,8 +115,24 @@ CREATE TABLE IF NOT EXISTS title_akas (
     types TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
     attributes TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
     is_original_title BOOLEAN NOT NULL DEFAULT FALSE,
+    row_hash TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE imdb_snapshots ADD COLUMN IF NOT EXISTS sync_mode TEXT NOT NULL DEFAULT 'full_refresh';
+ALTER TABLE imdb_snapshots ADD COLUMN IF NOT EXISTS episode_count BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE imdb_snapshots ADD COLUMN IF NOT EXISTS principal_count BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE imdb_snapshots ADD COLUMN IF NOT EXISTS crew_member_count BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE imdb_snapshots ADD COLUMN IF NOT EXISTS aka_count BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE imdb_snapshots ADD COLUMN IF NOT EXISTS duration_seconds INTEGER;
+
+ALTER TABLE titles ADD COLUMN IF NOT EXISTS row_hash TEXT NOT NULL DEFAULT '';
+ALTER TABLE title_ratings ADD COLUMN IF NOT EXISTS row_hash TEXT NOT NULL DEFAULT '';
+ALTER TABLE title_episodes ADD COLUMN IF NOT EXISTS row_hash TEXT NOT NULL DEFAULT '';
+ALTER TABLE names ADD COLUMN IF NOT EXISTS row_hash TEXT NOT NULL DEFAULT '';
+ALTER TABLE title_principals ADD COLUMN IF NOT EXISTS row_hash TEXT NOT NULL DEFAULT '';
+ALTER TABLE title_crew_members ADD COLUMN IF NOT EXISTS row_hash TEXT NOT NULL DEFAULT '';
+ALTER TABLE title_akas ADD COLUMN IF NOT EXISTS row_hash TEXT NOT NULL DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -162,7 +190,7 @@ CREATE INDEX IF NOT EXISTS idx_titles_title_type ON titles(title_type);
 CREATE INDEX IF NOT EXISTS idx_titles_start_year ON titles(start_year);
 CREATE INDEX IF NOT EXISTS idx_titles_primary_title_lower ON titles (lower(primary_title));
 CREATE INDEX IF NOT EXISTS idx_titles_search_primary_trgm ON titles USING GIN (lower(primary_title) gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_titles_search_original_trgm ON titles USING GIN (lower(original_title) gin_trgm_ops);
+DROP INDEX IF EXISTS idx_titles_search_original_trgm;
 
 CREATE INDEX IF NOT EXISTS idx_title_ratings_num_votes ON title_ratings(num_votes DESC);
 
@@ -179,7 +207,8 @@ CREATE INDEX IF NOT EXISTS idx_title_akas_title_lower ON title_akas (lower(title
 CREATE INDEX IF NOT EXISTS idx_title_akas_search_title_trgm ON title_akas USING GIN (lower(title) gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_title_akas_region_language ON title_akas(region, language);
 
-CREATE INDEX IF NOT EXISTS idx_names_search_primary_trgm ON names USING GIN (lower(primary_name) gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_names_primary_name_lower ON names (lower(primary_name));
+DROP INDEX IF EXISTS idx_names_search_primary_trgm;
 
 CREATE INDEX IF NOT EXISTS idx_web_sessions_user_id ON web_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_web_sessions_expires_at ON web_sessions(expires_at);

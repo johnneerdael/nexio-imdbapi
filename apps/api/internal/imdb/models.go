@@ -71,6 +71,7 @@ type Snapshot struct {
 	ID              int64      `json:"id"`
 	Dataset         string     `json:"dataset"`
 	Status          string     `json:"status"`
+	SyncMode        string     `json:"syncMode,omitempty"`
 	DatasetVersion  string     `json:"datasetVersion,omitempty"`
 	ImportedAt      time.Time  `json:"importedAt"`
 	SourceUpdatedAt *time.Time `json:"sourceUpdatedAt,omitempty"`
@@ -79,6 +80,10 @@ type Snapshot struct {
 	TitleCount      int64      `json:"titleCount"`
 	NameCount       int64      `json:"nameCount"`
 	RatingCount     int64      `json:"ratingCount"`
+	EpisodeCount    int64      `json:"episodeCount"`
+	PrincipalCount  int64      `json:"principalCount"`
+	CrewMemberCount int64      `json:"crewMemberCount"`
+	AKACount        int64      `json:"akaCount"`
 	Notes           string     `json:"notes,omitempty"`
 	SourceURL       string     `json:"sourceUrl,omitempty"`
 	CompletedAt     *time.Time `json:"completedAt,omitempty"`

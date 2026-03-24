@@ -70,6 +70,7 @@ func (s *Store) ListSnapshots(ctx context.Context) ([]imdb.Snapshot, error) {
 			id,
 			dataset_name,
 			status,
+			sync_mode,
 			dataset_version,
 			imported_at,
 			source_updated_at,
@@ -78,6 +79,10 @@ func (s *Store) ListSnapshots(ctx context.Context) ([]imdb.Snapshot, error) {
 			title_count,
 			name_count,
 			rating_count,
+			episode_count,
+			principal_count,
+			crew_member_count,
+			aka_count,
 			notes,
 			source_url,
 			completed_at
@@ -96,6 +101,7 @@ func (s *Store) ListSnapshots(ctx context.Context) ([]imdb.Snapshot, error) {
 			&item.ID,
 			&item.Dataset,
 			&item.Status,
+			&item.SyncMode,
 			&item.DatasetVersion,
 			&item.ImportedAt,
 			&item.SourceUpdatedAt,
@@ -104,6 +110,10 @@ func (s *Store) ListSnapshots(ctx context.Context) ([]imdb.Snapshot, error) {
 			&item.TitleCount,
 			&item.NameCount,
 			&item.RatingCount,
+			&item.EpisodeCount,
+			&item.PrincipalCount,
+			&item.CrewMemberCount,
+			&item.AKACount,
 			&item.Notes,
 			&item.SourceURL,
 			&item.CompletedAt,
@@ -122,14 +132,31 @@ func (s *Store) ListSnapshots(ctx context.Context) ([]imdb.Snapshot, error) {
 func (s *Store) GetStats(ctx context.Context) (imdb.Stats, error) {
 	var stats imdb.Stats
 	err := s.pool.QueryRow(ctx, `
+		WITH active_snapshot AS (
+			SELECT title_count, name_count, rating_count, episode_count, principal_count, crew_member_count, aka_count
+			FROM imdb_snapshots
+			WHERE is_active = TRUE
+			ORDER BY imported_at DESC, id DESC
+			LIMIT 1
+		),
+		table_estimates AS (
+			SELECT
+				COALESCE(MAX(CASE WHEN relname = 'title_episodes' THEN n_live_tup::bigint END), 0) AS episodes,
+				COALESCE(MAX(CASE WHEN relname = 'title_principals' THEN n_live_tup::bigint END), 0) AS principals,
+				COALESCE(MAX(CASE WHEN relname = 'title_crew_members' THEN n_live_tup::bigint END), 0) AS crew_members,
+				COALESCE(MAX(CASE WHEN relname = 'title_akas' THEN n_live_tup::bigint END), 0) AS akas
+			FROM pg_stat_all_tables
+			WHERE schemaname = 'public'
+			  AND relname IN ('title_episodes', 'title_principals', 'title_crew_members', 'title_akas')
+		)
 		SELECT
-			(SELECT COUNT(*) FROM titles) AS titles,
-			(SELECT COUNT(*) FROM names) AS names,
-			(SELECT COUNT(*) FROM title_ratings) AS ratings,
-			(SELECT COUNT(*) FROM title_episodes) AS episodes,
-			(SELECT COUNT(*) FROM title_principals) AS principals,
-			(SELECT COUNT(*) FROM title_crew_members) AS crew_members,
-			(SELECT COUNT(*) FROM title_akas) AS akas,
+			COALESCE((SELECT title_count FROM active_snapshot), 0) AS titles,
+			COALESCE((SELECT name_count FROM active_snapshot), 0) AS names,
+			COALESCE((SELECT rating_count FROM active_snapshot), 0) AS ratings,
+			COALESCE(NULLIF((SELECT episode_count FROM active_snapshot), 0), (SELECT episodes FROM table_estimates), 0) AS episodes,
+			COALESCE(NULLIF((SELECT principal_count FROM active_snapshot), 0), (SELECT principals FROM table_estimates), 0) AS principals,
+			COALESCE(NULLIF((SELECT crew_member_count FROM active_snapshot), 0), (SELECT crew_members FROM table_estimates), 0) AS crew_members,
+			COALESCE(NULLIF((SELECT aka_count FROM active_snapshot), 0), (SELECT akas FROM table_estimates), 0) AS akas,
 			(SELECT COUNT(*) FROM imdb_snapshots) AS snapshots
 	`).Scan(
 		&stats.Titles,

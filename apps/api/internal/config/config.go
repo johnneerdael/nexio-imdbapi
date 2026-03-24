@@ -8,26 +8,32 @@ import (
 )
 
 type Config struct {
-	Address             string
-	DatabaseURL         string
-	APIKeyPepper        string
-	IMDbDatasetBaseURL  string
-	IMDbSyncInterval    time.Duration
-	IMDbRunOnStartup    bool
-	BulkJobPollInterval time.Duration
-	HTTPTimeout         time.Duration
+	Address                string
+	DatabaseURL            string
+	APIKeyPepper           string
+	IMDbDatasetBaseURL     string
+	IMDbSyncInterval       time.Duration
+	IMDbRunOnStartup       bool
+	IMDbForceFullRefresh   bool
+	IMDbDeltaBatchSize     int
+	IMDbMaintenanceWorkMem string
+	BulkJobPollInterval    time.Duration
+	HTTPTimeout            time.Duration
 }
 
 func Load() (Config, error) {
 	cfg := Config{
-		Address:             envOrDefault("API_ADDRESS", ":8080"),
-		DatabaseURL:         os.Getenv("DATABASE_URL"),
-		APIKeyPepper:        os.Getenv("API_KEY_PEPPER"),
-		IMDbDatasetBaseURL:  envOrDefault("IMDB_DATASET_BASE_URL", "https://datasets.imdbws.com"),
-		IMDbSyncInterval:    envDurationHours("IMDB_SYNC_INTERVAL_HOURS", 12),
-		IMDbRunOnStartup:    envBool("IMDB_RUN_ON_STARTUP", true),
-		BulkJobPollInterval: envDurationSeconds("BULK_JOB_POLL_INTERVAL_SECONDS", 15),
-		HTTPTimeout:         envDurationMinutes("HTTP_TIMEOUT_MINUTES", 30),
+		Address:                envOrDefault("API_ADDRESS", ":8080"),
+		DatabaseURL:            os.Getenv("DATABASE_URL"),
+		APIKeyPepper:           os.Getenv("API_KEY_PEPPER"),
+		IMDbDatasetBaseURL:     envOrDefault("IMDB_DATASET_BASE_URL", "https://datasets.imdbws.com"),
+		IMDbSyncInterval:       envDurationHours("IMDB_SYNC_INTERVAL_HOURS", 12),
+		IMDbRunOnStartup:       envBool("IMDB_RUN_ON_STARTUP", true),
+		IMDbForceFullRefresh:   envBool("IMDB_FORCE_FULL_REFRESH", false),
+		IMDbDeltaBatchSize:     envInt("IMDB_DELTA_BATCH_SIZE", 50000),
+		IMDbMaintenanceWorkMem: envOrDefault("IMDB_MAINTENANCE_WORK_MEM", "1GB"),
+		BulkJobPollInterval:    envDurationSeconds("BULK_JOB_POLL_INTERVAL_SECONDS", 15),
+		HTTPTimeout:            envDurationMinutes("HTTP_TIMEOUT_MINUTES", 30),
 	}
 
 	if cfg.DatabaseURL == "" {
